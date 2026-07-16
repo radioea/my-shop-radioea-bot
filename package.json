@@ -1,0 +1,12 @@
+{
+  "name": "telegram-shop-bot",
+  "version": "1.0.0",
+  "description": "Telegram bot for orders",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "telegraf": "^4.15.0"
+  }
+}
