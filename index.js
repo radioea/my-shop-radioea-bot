@@ -188,6 +188,16 @@ bot.command('orders', async (ctx) => {
   await ctx.reply(text);
 });
 
+// ===== HTTP-сервер для Render (только если оставляешь Web Service) =====
+const http = require('http');
+const PORT = process.env.PORT || 3000;
+http.createServer((req, res) => {
+    res.writeHead(200);
+    res.end('Bot is running');
+}).listen(PORT, () => {
+    console.log(HTTP server on port ${PORT});
+});
+
 bot.launch().then(() => {
   console.log('✅ Bot started!');
 }).catch((err) => {
