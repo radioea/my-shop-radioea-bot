@@ -1,3 +1,4 @@
+
 const { Telegraf, Markup } = require('telegraf');
 const fs = require('fs');
 const path = require('path');
@@ -6,7 +7,7 @@ const path = require('path');
 const BOT_TOKEN = '8916472134:AAE3-pCZpxR2xCm7pC3I6YvGwWDUPW8cQmc';  // ТОЛЬКО ЭТУ СТРОКУ МЕНЯЙ
 const ADMIN_ID = 5179932939;
 
-// ========== ТОВАРЫ (цены реальные) ==========
+// ========== ТОВАРЫ ==========
 const GOODS = [
     { id: 1, name: 'ESP32 DevKit V1', price: 45 },
     { id: 2, name: 'SIMCom A7670E', price: 80 },
@@ -25,7 +26,7 @@ if (!fs.existsSync(SESSIONS_FILE)) fs.writeFileSync(SESSIONS_FILE, '{}');
 if (!fs.existsSync(FEEDBACKS_FILE)) fs.writeFileSync(FEEDBACKS_FILE, '[]');
 if (!fs.existsSync(CONTACTS_FILE)) fs.writeFileSync(CONTACTS_FILE, '[]');
 
-// ========== РАБОТА С СЕССИЯМИ (правильно) ==========
+// ========== РАБОТА С СЕССИЯМИ ==========
 function loadSessions() {
     return JSON.parse(fs.readFileSync(SESSIONS_FILE));
 }
@@ -50,7 +51,7 @@ function deleteSession(userId) {
 
 // ========== КОРЗИНЫ ==========
 const carts = new Map();
-const bot = new Telegraf(BOT_TOKEN);  // ВОТ ЗДЕСЬ БЫЛО ОШИБОЧНО Telegraph — ИСПРАВЛЕНО
+const bot = new Telegraf(BOT_TOKEN);   // <-- ТОЧНО Telegraf (не Telegraph!)
 
 function getCart(userId) {
     if (!carts.has(userId)) carts.set(userId, []);
@@ -108,6 +109,7 @@ bot.action('help', async (ctx) => {
         { parse_mode: 'Markdown' }
     );
 });
+
 bot.command('help', async (ctx) => {
     await ctx.reply(
         '📖 *Инструкция:*\n\n' +
@@ -310,6 +312,7 @@ bot.command('status', async (ctx) => {
     fs.writeFileSync(ORDERS_FILE, JSON.stringify(orders, null, 2));
     await ctx.reply(✅ Статус заказа #${id} изменён на "${newStatus}");
 });
+
 bot.command('broadcast', async (ctx) => {
     if (ctx.from.id !== ADMIN_ID) return ctx.reply('⛔ Нет прав.');
     const text = ctx.message.text.split(' ').slice(1).join(' ');
