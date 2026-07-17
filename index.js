@@ -18,11 +18,15 @@ const GOODS = [
 // ========== ФАЙЛЫ ==========
 const ORDERS_FILE = path.join(__dirname, 'orders.json');
 const SESSIONS_FILE = path.join(__dirname, 'sessions.json');
+const FEEDBACKS_FILE = path.join(__dirname, 'feedbacks.json');
+const CONTACTS_FILE = path.join(__dirname, 'contacts.json');
 
 if (!fs.existsSync(ORDERS_FILE)) fs.writeFileSync(ORDERS_FILE, '[]');
 if (!fs.existsSync(SESSIONS_FILE)) fs.writeFileSync(SESSIONS_FILE, '{}');
+if (!fs.existsSync(FEEDBACKS_FILE)) fs.writeFileSync(FEEDBACKS_FILE, '[]');
+if (!fs.existsSync(CONTACTS_FILE)) fs.writeFileSync(CONTACTS_FILE, '[]');
 
-// ========== СЕССИИ (упрощённо) ==========
+// ========== СЕССИИ ==========
 function loadSessions() {
     return JSON.parse(fs.readFileSync(SESSIONS_FILE));
 }
@@ -58,16 +62,22 @@ function saveOrder(order) {
     const orders = JSON.parse(fs.readFileSync(ORDERS_FILE));
     orders.push(order);
     fs.writeFileSync(ORDERS_FILE, JSON.stringify(orders, null, 2));
+    const contacts = JSON.parse(fs.readFileSync(CONTACTS_FILE));
+    if (!contacts.some(c => c.userId === order.userId)) {
+        contacts.push({ userId: order.userId, phone: order.phone, date: new Date().toISOString() });
+        fs.writeFileSync(CONTACTS_FILE, JSON.stringify(contacts, null, 2));
+    }
 }
 
 function getMainKeyboard() {
     const buttons = GOODS.map(g =>
-        Markup.button.callback(${g.name} — ${g.price} BYN, add_${g.id})
+        Markup.button.callback(${g.name} — ${g.price} BYN, add_${g.id})  // ИСПРАВЛЕНО
     );
     const rows = [];
     for (let i = 0; i < buttons.length; i += 2) rows.push(buttons.slice(i, i + 2));
     rows.push([Markup.button.callback('🛒 Корзина', 'show_cart')]);
     rows.push([Markup.button.callback('📦 Оформить заказ', 'checkout')]);
+    rows.push([Markup.button.callback('🔄 Повторить заказ', 'repeat_order')]);
     rows.push([Markup.button.callback('❓ Помощь', 'help')]);
     return Markup.inlineKeyboard(rows);
 }
@@ -80,19 +90,9 @@ bot.start(async (ctx) => {
     await ctx.reply(
         👋 *Привет, ${ctx.from.first_name}!*\n\n +
         'Добро пожаловать в магазин радиодеталей!\n' +
-        'Выберите товары из каталога ниже.',
+        'Выберите товары из каталога ниже.\n\n' +
+        '📌 Нажмите «Помощь», если что-то непонятно.',
         { parse_mode: 'Markdown', ...getMainKeyboard() }
-    );
-});
-
-bot.command('help', async (ctx) => {
-    await ctx.reply(
-        '📖 *Инструкция:*\n\n' +
-        '1. Нажмите кнопку с товаром, чтобы добавить в корзину.\n' +
-        '2. Перейдите в «Корзину» → проверьте заказ.\n' +
-        '3. Нажмите «Оформить заказ» → введите адрес и телефон.\n' +
-        '4. После оформления мы свяжемся с вами.',
-        { parse_mode: 'Markdown' }
     );
 });
 
@@ -103,7 +103,22 @@ bot.action('help', async (ctx) => {
         '1. Нажмите кнопку с товаром, чтобы добавить в корзину.\n' +
         '2. Перейдите в «Корзину» → проверьте заказ.\n' +
         '3. Нажмите «Оформить заказ» → введите адрес и телефон.\n' +
-        '4. После оформления мы свяжемся с вами.',
+        '4. После оформления мы свяжемся с вами.\n\n' +
+        '💬 Вопросы /feedback\n' +
+        '🔄 Повторить заказ — для постоянных клиентов.',
+        { parse_mode: 'Markdown' }
+    );
+});
+
+bot.command('help', async (ctx) => {
+    await ctx.reply(
+        '📖 *Инструкция:*\n\n' +
+        '1. Нажмите кнопку с товаром, чтобы добавить в корзину.\n' +
+        '2. Перейдите в «Корзину» → проверьте заказ.\n' +
+        '3. Нажмите «Оформить заказ» → введите адрес и телефон.\n' +
+        '4. После оформления мы свяжемся с вами.\n\n' +
+        '💬 Вопросы /feedback\n' +
+        '🔄 Повторить заказ — для постоянных клиентов.',
         { parse_mode: 'Markdown' }
     );
 });
@@ -119,6 +134,27 @@ bot.action(/add_(\d+)/, async (ctx) => {
     await ctx.answerCbQuery(✅ Добавлено: ${product.name});
     await ctx.editMessageText(
         📦 *${product.name}*\n💰 ${product.price} BYN\n📌 Кол-во: ${existing ? existing.quantity : 1},
+        { parse_mode: 'Markdown', ...getMainKeyboard() }
+    );
+});
+
+bot.action('repeat_order', async (ctx) => {
+    const orders = JSON.parse(fs.readFileSync(ORDERS_FILE));
+    const userOrders = orders.filter(o => o.userId === ctx.from.id);
+    if (userOrders.length === 0) {
+        await ctx.answerCbQuery('❌ У вас пока нет заказов');
+        return;
+    }
+    const lastOrder = userOrders[userOrders.length - 1];
+    const cart = getCart(ctx.from.id);
+    lastOrder.items.forEach(item => {
+        const existing = cart.find(i => i.id === item.id);
+        if (existing) existing.quantity += item.quantity;
+        else cart.push({ id: item.id, quantity: item.quantity });
+    });
+    await ctx.answerCbQuery('✅ Последний заказ добавлен в корзину');
+    await ctx.editMessageText(
+        '🔄 *Последний заказ добавлен в корзину.*\nПерейдите в корзину для оформления.',
         { parse_mode: 'Markdown', ...getMainKeyboard() }
     );
 });
@@ -173,7 +209,6 @@ bot.on('text', async (ctx) => {
     const text = ctx.message.text.trim();
     const session = getSession(userId);
     const cart = getCart(userId);
-
     if (session.waitingFor === 'address') {
         setSession(userId, { address: text, waitingFor: 'phone' });
         await ctx.reply('📞 *Введите ваш номер телефона:*\n(например, +375291234567)', { parse_mode: 'Markdown' });
@@ -226,7 +261,30 @@ bot.on('text', async (ctx) => {
         return;
     }
 
+    if (session.waitingFor === 'feedback') {
+        const feedbacks = JSON.parse(fs.readFileSync(FEEDBACKS_FILE));
+        feedbacks.push({
+            userId: ctx.from.id,
+            username: ctx.from.username || 'аноним',
+            text: text,
+            date: new Date().toISOString()
+        });
+        fs.writeFileSync(FEEDBACKS_FILE, JSON.stringify(feedbacks, null, 2));
+        await ctx.reply('🙏 *Спасибо за ваш отзыв!*\nМы ценим ваше мнение.', { parse_mode: 'Markdown', ...getMainKeyboard() });
+        deleteSession(userId);
+        await bot.telegram.sendMessage(
+            ADMIN_ID,
+            📝 *Новый отзыв*\nОт: @${ctx.from.username || 'аноним'}\nТекст: ${text}
+        );
+        return;
+    }
+
     await ctx.reply('Используйте кнопки меню.', getMainKeyboard());
+});
+
+bot.command('feedback', async (ctx) => {
+    setSession(ctx.from.id, { waitingFor: 'feedback' });
+    await ctx.reply('📝 *Напишите ваш отзыв о нашем магазине:*\n(можно одним сообщением)', { parse_mode: 'Markdown' });
 });
 
 // ========== АДМИН-КОМАНДЫ ==========
@@ -253,6 +311,35 @@ bot.command('status', async (ctx) => {
     order.status = newStatus;
     fs.writeFileSync(ORDERS_FILE, JSON.stringify(orders, null, 2));
     await ctx.reply(✅ Статус заказа #${id} изменён на "${newStatus}");
+});
+bot.command('broadcast', async (ctx) => {
+    if (ctx.from.id !== ADMIN_ID) return ctx.reply('⛔ Нет прав.');
+    const text = ctx.message.text.split(' ').slice(1).join(' ');
+    if (!text) return ctx.reply('📌 Формат: /broadcast <текст сообщения>');
+    const contacts = JSON.parse(fs.readFileSync(CONTACTS_FILE));
+    let sent = 0;
+    for (const c of contacts) {
+        try {
+            await bot.telegram.sendMessage(c.userId, 📢 *Рассылка*\n\n${text}, { parse_mode: 'Markdown' });
+            sent++;
+        } catch (e) {}
+    }
+    await ctx.reply(✅ Отправлено ${sent} пользователям.);
+});
+
+bot.command('export', async (ctx) => {
+    if (ctx.from.id !== ADMIN_ID) return ctx.reply('⛔ Нет прав.');
+    const orders = JSON.parse(fs.readFileSync(ORDERS_FILE));
+    if (!orders.length) return ctx.reply('📭 Заказов нет.');
+    let csv = 'ID,Дата,Товары,Сумма,Адрес,Телефон,Статус\n';
+    orders.forEach(o => {
+        const items = o.items.map(i => GOODS.find(g => g.id === i.id).name + 'x' + i.quantity).join('; ');
+        csv += ${o.id},${o.date},${items},${o.total},${o.address},${o.phone},${o.status}\n;
+    });
+    const csvPath = path.join(__dirname, 'orders_export.csv');
+    fs.writeFileSync(csvPath, csv);
+    await ctx.replyWithDocument({ source: csvPath, filename: 'orders_export.csv' });
+    fs.unlinkSync(csvPath);
 });
 
 // ========== HTTP-СЕРВЕР ДЛЯ RENDER ==========
