@@ -3,7 +3,7 @@ const fs = require('fs');
 const path = require('path');
 
 // ========== НАСТРОЙКИ ==========
-const BOT_TOKEN = 'СЮДА_ВСТАВЬ_ТОКЕН';
+const BOT_TOKEN = '8916472134:AAE3-pCZpxR2xCm7pC3I6YvGwWDUPW8cQmc';
 const ADMIN_ID = 5179932939;
 
 // ========== ТОВАРЫ ==========
