@@ -71,7 +71,7 @@ function saveOrder(order) {
 
 function getMainKeyboard() {
     const buttons = GOODS.map(g =>
-        Markup.button.callback(${g.name} — ${g.price} BYN', 'add_${g.id}');  
+        Markup.button.callback(`${g.name} — ${g.price} BYN`, `add_${g.id}`);  
     });
     const rows = [];
     for (let i = 0; i < buttons.length; i += 2) rows.push(buttons.slice(i, i + 2));
