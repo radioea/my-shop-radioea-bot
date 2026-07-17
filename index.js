@@ -1,5 +1,5 @@
 
-       const { Telegraf, Markup } = require('telegraf');
+const { Telegraf, Markup } = require('telegraf');
 const fs = require('fs');
 const path = require('path');
 
@@ -39,7 +39,7 @@ function saveOrder(order) {
 }
 
 function getMainKeyboard() {
-    const buttons = GOODS.map(g => {
+    const buttons = GOODS.map(function(g) {
         return Markup.button.callback(g.name + ' - ' + g.price + ' BYN', 'add_' + g.id);
     });
     const rows = [];
@@ -51,20 +51,22 @@ function getMainKeyboard() {
     return Markup.inlineKeyboard(rows);
 }
 
-bot.start(async (ctx) => {
-    carts.set(ctx.from.id, []);
+bot.start(async function(ctx) {
+    const userId = ctx.from.id;
+    carts.set(userId, []);
+    ctx.session = {};
     await ctx.reply('Привет! Выбери товар:', getMainKeyboard());
 });
 
-bot.action(/add_(\d+)/, async (ctx) => {
+bot.action(/add_(\d+)/, async function(ctx) {
     const productId = parseInt(ctx.match[1], 10);
-    const product = GOODS.find(g => g.id === productId);
+    const product = GOODS.find(function(g) { return g.id === productId; });
     if (!product) {
         await ctx.answerCbQuery('Нет такого');
         return;
     }
     const cart = getCart(ctx.from.id);
-    const existing = cart.find(item => item.id === productId);
+    const existing = cart.find(function(item) { return item.id === productId; });
     if (existing) {
         existing.quantity += 1;
     } else {
@@ -77,7 +79,7 @@ bot.action(/add_(\d+)/, async (ctx) => {
     );
 });
 
-bot.action('show_cart', async (ctx) => {
+bot.action('show_cart', async function(ctx) {
     const cart = getCart(ctx.from.id);
     if (cart.length === 0) {
         await ctx.answerCbQuery('Корзина пуста');
@@ -86,8 +88,8 @@ bot.action('show_cart', async (ctx) => {
     }
     let text = 'Ваша корзина:\n\n';
     let total = 0;
-    cart.forEach(item => {
-        const product = GOODS.find(g => g.id === item.id);
+    cart.forEach(function(item) {
+        const product = GOODS.find(function(g) { return g.id === item.id; });
         const sum = product.price * item.quantity;
         total += sum;
         text += product.name + ' x ' + item.quantity + ' = ' + sum + ' BYN\n';
@@ -102,35 +104,34 @@ bot.action('show_cart', async (ctx) => {
     });
 });
 
-bot.action('clear_cart', async (ctx) => {
+bot.action('clear_cart', async function(ctx) {
     carts.set(ctx.from.id, []);
     await ctx.answerCbQuery('Очищено');
     await ctx.editMessageText('Корзина пуста', getMainKeyboard());
 });
 
-bot.action('back_catalog', async (ctx) => {
+bot.action('back_catalog', async function(ctx) {
     await ctx.editMessageText('Каталог:', getMainKeyboard());
 });
 
-bot.action('checkout', async (ctx) => {
+bot.action('checkout', async function(ctx) {
     const cart = getCart(ctx.from.id);
     if (cart.length === 0) {
         await ctx.answerCbQuery('Корзина пуста');
         return;
     }
-    ctx.session = ctx.session || {};
-    ctx.session.waitingFor = 'address';
-    await ctx.reply('Введите адрес:');
+    ctx.session = { waitingFor: 'address' };
+    await ctx.reply('Введите адрес (город, улица, дом, квартира):');
 });
 
-bot.on('text', async (ctx) => {
+bot.on('text', async function(ctx) {
     const userId = ctx.from.id;
     const text = ctx.message.text.trim();
     const cart = getCart(userId);
- if (ctx.session && ctx.session.waitingFor === 'address') {
+       if (ctx.session && ctx.session.waitingFor === 'address') {
         ctx.session.address = text;
         ctx.session.waitingFor = 'phone';
-        await ctx.reply('Введите телефон:');
+        await ctx.reply('Введите номер телефона:');
         return;
     }
 
@@ -140,16 +141,19 @@ bot.on('text', async (ctx) => {
             ctx.session = {};
             return;
         }
+
         let total = 0;
-        cart.forEach(item => {
-            const product = GOODS.find(g => g.id === item.id);
+        cart.forEach(function(item) {
+            const product = GOODS.find(function(g) { return g.id === item.id; });
             total += product.price * item.quantity;
         });
+
         let itemsText = '';
-        cart.forEach(item => {
-            const product = GOODS.find(g => g.id === item.id);
+        cart.forEach(function(item) {
+            const product = GOODS.find(function(g) { return g.id === item.id; });
             itemsText += product.name + ' x ' + item.quantity + '\n';
         });
+
         const order = {
             id: Date.now(),
             userId: userId,
@@ -160,7 +164,9 @@ bot.on('text', async (ctx) => {
             date: new Date().toISOString(),
             status: 'новый'
         };
+
         saveOrder(order);
+
         await ctx.reply(
             'Заказ #' + order.id + ' оформлен!\n' +
             'Сумма: ' + total + ' BYN\n' +
@@ -169,8 +175,10 @@ bot.on('text', async (ctx) => {
             'Спасибо!',
             getMainKeyboard()
         );
+
         carts.set(userId, []);
         ctx.session = {};
+
         await bot.telegram.sendMessage(
             ADMIN_ID,
             'НОВЫЙ ЗАКАЗ #' + order.id + '\n' +
@@ -185,7 +193,7 @@ bot.on('text', async (ctx) => {
     await ctx.reply('Используйте кнопки.', getMainKeyboard());
 });
 
-bot.command('orders', async (ctx) => {
+bot.command('orders', async function(ctx) {
     if (ctx.from.id !== ADMIN_ID) {
         await ctx.reply('Нет прав');
         return;
@@ -196,13 +204,13 @@ bot.command('orders', async (ctx) => {
         return;
     }
     let text = 'Последние 5 заказов:\n\n';
-    orders.slice(-5).reverse().forEach(o => {
+    orders.slice(-5).reverse().forEach(function(o) {
         text += '#' + o.id + ' - ' + o.total + ' BYN - ' + o.status + '\n';
     });
     await ctx.reply(text);
 });
 
-bot.command('status', async (ctx) => {
+bot.command('status', async function(ctx) {
     if (ctx.from.id !== ADMIN_ID) {
         await ctx.reply('Нет прав');
         return;
@@ -215,7 +223,7 @@ bot.command('status', async (ctx) => {
     const id = parseInt(parts[1], 10);
     const newStatus = parts.slice(2).join(' ');
     const orders = JSON.parse(fs.readFileSync(ORDERS_FILE));
-    const order = orders.find(o => o.id === id);
+    const order = orders.find(function(o) { return o.id === id; });
     if (!order) {
         await ctx.reply('Заказ не найден');
         return;
@@ -228,19 +236,19 @@ bot.command('status', async (ctx) => {
 // ========== HTTP-СЕРВЕР ДЛЯ RENDER ==========
 const http = require('http');
 const PORT = process.env.PORT || 3000;
-http.createServer((req, res) => {
+http.createServer(function(req, res) {
     res.writeHead(200);
     res.end('Bot is running');
-}).listen(PORT, () => {
+}).listen(PORT, function() {
     console.log('HTTP server on port ' + PORT);
 });
 
 // ========== ЗАПУСК ==========
-bot.launch().then(() => {
+bot.launch().then(function() {
     console.log('Bot started!');
-}).catch((err) => {
+}).catch(function(err) {
     console.error('Error:', err);
 });
 
-process.once('SIGINT', () => bot.stop('SIGINT'));
-process.once('SIGTERM', () => bot.stop('SIGTERM'));   
+process.once('SIGINT', function() { bot.stop('SIGINT'); });
+process.once('SIGTERM', function() { bot.stop('SIGTERM'); });
