@@ -7,10 +7,12 @@ const BOT_TOKEN = '8916472134:AAE3-pCZpxR2xCm7pC3I6YvGwWDUPW8cQmc';
 const ADMIN_ID = 5179932939;
 
 const GOODS = [
-    { id: 1, name: 'ESP32 DevKit V1', price: 45 },
-    { id: 2, name: 'SIMCom A7670E', price: 80 },
-    { id: 3, name: 'OLED 0.96 I2C', price: 14 },
-    { id: 4, name: 'Набор резисторов 0805', price: 22 }
+    { id: 1, name: 'ESP32 DevKit V1 (30 pin, Type-C)', price: 19 },
+    { id: 2, name: 'SIMCom A7670E (4G/GPS, без антенны)', price: 35 },
+    { id: 3, name: 'OLED 0.96″ I2C (SSD1306)', price: 9 },
+    { id: 4, name: 'Arduino Nano V3 (Type-C, с пинами)', price: 12 },
+    { id: 5, name: 'Резисторы 0805 (набор 150 шт, 15 номиналов: 10,100,220,330,470 Ом, 1,2.2,4.7,10,22,47,100,220,470 кОм, 1 МОм)', price: 10 },
+    { id: 6, name: 'Резисторы 0805 (набор 300 шт, те же 15 номиналов × 20 шт)', price: 15 },
 ];
 
 const ORDERS_FILE = path.join(__dirname, 'orders.json');
