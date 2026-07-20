@@ -2,10 +2,12 @@
 const { Telegraf, Markup } = require('telegraf');
 const fs = require('fs');
 const path = require('path');
+const express = require('express');
 
 // ============ НАСТРОЙКИ ============
 const BOT_TOKEN = '8916472134:AAE3-pCZpxR2xCm7pC3I6YvGwIDUPW8CQmc';
 const ADMIN_ID = 5179932939;
+const PORT = 3000;
 
 // ============ ТОВАРЫ ============
 const GOODS = [
@@ -54,21 +56,19 @@ function saveFeedback(feedback) {
 // ============ КЛАВИАТУРА ============
 function getMainKeyboard() {
     const buttons = GOODS.map(g => 
-        Markup.button.callback(${g.name} - ${g.price} BYN, add_${g.id})
+        Markup.button.callback(g.name + ' - ' + g.price + ' BYN', 'add_' + g.id)
     );
     
     const rows = [];
-    for (let i = 0; i < buttons.length; i += 2) {
-        rows.push(buttons.slice(i, i + 2));
-    }
+    for (let i = 0; i < buttons.length; i += 2) rows.push(buttons.slice(i, i + 2));
     
-    rows.push([Markup.button.callback('🛒 Корзина', 'show_cart')]);
-    rows.push([Markup.button.callback('📦 Оформить заказ', 'checkout')]);
-    rows.push([Markup.button.callback('🔄 Повторить заказ', 'repeat_order')]);
-    rows.push([Markup.button.callback('💬 Отзывы', 'feedback_button')]);
-    rows.push([Markup.button.callback('❓ Помощь', 'help_button')]);
-    rows.push([Markup.button.callback('📊 Статус', 'status_button')]);
-    rows.push([Markup.button.callback('📤 Экспорт', 'export_button')]);
+    rows.push([Markup.button.callback('Корзина', 'show_cart')]);
+    rows.push([Markup.button.callback('Оформить заказ', 'checkout')]);
+    rows.push([Markup.button.callback('Повторить заказ', 'repeat_order')]);
+    rows.push([Markup.button.callback('Отзывы', 'feedback_button')]);
+    rows.push([Markup.button.callback('Помощь', 'help_button')]);
+    rows.push([Markup.button.callback('Статус', 'status_button')]);
+    rows.push([Markup.button.callback('Экспорт', 'export_button')]);
     
     return Markup.inlineKeyboard(rows);
 }
@@ -86,8 +86,8 @@ bot.command('help', async (ctx) => {
     await ctx.reply(
         '📖 Инструкция:\n\n' +
         '1️⃣ Нажмите кнопку с товаром, чтобы добавить его в корзину.\n' +
-        '2️⃣ Нажмите «🛒 Корзина», чтобы посмотреть выбранные товары.\n' +
-        '3️⃣ Нажмите «📦 Оформить заказ» и введите адрес и телефон.\n' +
+        '2️⃣ Нажмите «Корзина», чтобы посмотреть выбранные товары.\n' +
+        '3️⃣ Нажмите «Оформить заказ» и введите адрес и телефон.\n' +
         '4️⃣ После оформления вы получите подтверждение.\n\n' +
         '💬 Если есть вопросы – напишите /feedback.',
         { parse_mode: 'Markdown' }
@@ -97,7 +97,7 @@ bot.command('help', async (ctx) => {
 bot.command('feedback', async (ctx) => {
     const session = getSession(ctx.from.id);
     session.waitingFor = 'feedback';
-    await ctx.reply('✍️ Напишите ваш отзыв о нашем магазине:', { parse_mode: 'Markdown' });
+    await ctx.reply('✍️ Напишите ваш отзыв о нашем магазине:\n(можно одним сообщением)', { parse_mode: 'Markdown' });
 });
 
 // ============ ЭКСПОРТ (ТОЛЬКО АДМИН) ============
@@ -107,7 +107,7 @@ bot.command('export', async (ctx) => {
         return;
     }
 
-     try {
+       try {
         const orders = JSON.parse(fs.readFileSync(ORDERS_FILE));
         const feedbacks = JSON.parse(fs.readFileSync(FEEDBACKS_FILE));
         
@@ -121,14 +121,14 @@ bot.command('export', async (ctx) => {
             feedbacks: feedbacks
         };
         
-        const fileName = export_${Date.now()}.json;
+        const fileName = 'export_' + Date.now() + '.json';
         const filePath = path.join(__dirname, fileName);
         fs.writeFileSync(filePath, JSON.stringify(data, null, 2));
         
         await ctx.replyWithDocument(
             { source: filePath },
             {
-                caption: 📦 **Экспорт данных**\n\n📅 ${new Date().toLocaleString()}\n📦 Заказов: ${orders.length}\n💬 Отзывов: ${feedbacks.length},
+                caption: '📦 Экспорт данных\n\n📅 ' + new Date().toLocaleString() + '\n📦 Заказов: ' + orders.length + '\n💬 Отзывов: ' + feedbacks.length,
                 parse_mode: 'Markdown'
             }
         );
@@ -152,25 +152,27 @@ bot.command('status', async (ctx) => {
     
     const sales = {};
     orders.forEach(order => {
-        order.items?.forEach(item => {
-            const product = GOODS.find(g => g.id === item.id);
-            const name = product ? product.name : Товар #${item.id};
-            sales[name] = (sales[name]  0) + (item.quantity  1);
-        });
+        if (order.items) {
+            order.items.forEach(item => {
+                const product = GOODS.find(g => g.id === item.id);
+                const name = product ? product.name : 'Товар #' + item.id;
+                sales[name] = (sales[name]  0) + (item.quantity  1);
+            });
+        }
     });
     
-    let text = 📊 **Статус магазина**\n\n;
-    text += 👤 Заказов: ${orders.length}\n;
-    text += 💬 Отзывов: ${feedbacks.length}\n;
-    text += 📦 Товаров: ${GOODS.length}\n\n;
-    text += **Продажи:**\n;
+    let text = '📊 Статус магазина\n\n';
+    text += '👤 Заказов: ' + orders.length + '\n';
+    text += '💬 Отзывов: ' + feedbacks.length + '\n';
+    text += '📦 Товаров: ' + GOODS.length + '\n\n';
+    text += 'Продажи:\n';
     
     const sorted = Object.entries(sales).sort((a, b) => b[1] - a[1]);
     if (sorted.length === 0) {
-        text += Пока нет продаж 📭\n;
+        text += 'Пока нет продаж 📭\n';
     } else {
-        sorted.forEach(([name, count]) => {
-            text += • ${name}: ${count} шт.\n;
+        sorted.forEach(function(item) {
+            text += '• ' + item[0] + ': ' + item[1] + ' шт.\n';
         });
     }
     
@@ -197,10 +199,10 @@ bot.action(/add_(\d+)/, async (ctx) => {
         cart.push({ id: productId, quantity: 1 });
     }
     
-    await ctx.answerCbQuery(✅ ${product.name} добавлен);
+    await ctx.answerCbQuery('✅ ' + product.name + ' добавлен');
     await ctx.editMessageText(
-        ✅ **${product.name}** добавлен!\n💰 ${product.price} BYN\n📦 ${existing ? existing.quantity : 1} шт.,
-        { parse_mode: 'Markdown', ...getMainKeyboard() }
+        '✅ Товар добавлен: ' + product.name + ' ' + product.price + ' BYN\n Количество: ' + (existing ? existing.quantity : 1),
+        { parse_mode: 'Markdown' }
     );
 });
 
@@ -209,23 +211,23 @@ bot.action('show_cart', async (ctx) => {
     
     if (cart.length === 0) {
         await ctx.answerCbQuery('🛒 Корзина пуста', true);
-        awaiКорзина пуста*Корзина пуста**', { parse_mode: 'Markdown' });
+        await ctx.reply('🛒 Корзина пуста', { parse_mode: 'Markdown' });
         return;
     }
     
-   Ваша корзина:*Ваша корзина:**\n\n';
+    let text = '🛒 Ваша корзина:\n\n';
     let total = 0;
     
     cart.forEach(item => {
         const product = GOODS.find(g => g.id === item.id);
         if (product) {
             const subtotal = product.price * item.quantity;
-            text += • ${product.name}\n  ${item.quantity} шт. × ${product.price} BYN = ${subtotal} BYN\n\n;
+            text += '• ' + product.name + '\n  ' + item.quantity + ' шт. × ' + product.price + ' BYN = ' + subtotal + ' BYN\n\n';
             total += subtotal;
-            }
+        }
     });
     
-    text += 💰 **Итого: ${total} BYN**;
+    text += '💰 Итого: ' + total + ' BYN';
     
     await ctx.editMessageText(text, {
         parse_mode: 'Markdown',
@@ -240,7 +242,7 @@ bot.action('show_cart', async (ctx) => {
 bot.action('clear_cart', async (ctx) => {
     carts.set(ctx.from.id, []);
     await ctx.answerCbQuery('🗑 Корзина очищена');
-    await ctx.editMessageText(Корзина очищенана**', {
+    await ctx.editMessageText('🗑 Корзина очищена', {
         parse_mode: 'Markdown',
         ...getMainKeyboard()
     });
@@ -248,7 +250,7 @@ bot.action('clear_cart', async (ctx) => {
 
 bot.action('back_catalog', async (ctx) => {
     await ctx.editMessageText(
-        Каталог товаров:в:**\n\nВыберите нужный товар:',
+        '📦 Каталог товаров:\n\nВыберите нужный товар:',
         { parse_mode: 'Markdown', ...getMainKeyboard() }
     );
 });
@@ -263,7 +265,7 @@ bot.action('checkout', async (ctx) => {
     const session = getSession(ctx.from.id);
     session.waitingFor = 'address';
     await ctx.reply(
-        '📝 Введадрес доставкики*телефонон**:\n\nПример: г. Минск, ул. Ленина 1, +375291234567',
+        '📝 Введите адрес доставки и номер телефона:\n\nПример: г. Минск, ул. Ленина 1, +375291234567',
         { parse_mode: 'Markdown' }
     );
 });
@@ -291,7 +293,7 @@ bot.action('repeat_order', async (ctx) => {
     
     await ctx.answerCbQuery('✅ Последний заказ добавлен в корзину');
     await ctx.editMessageText(
-       Последний заказ добавлен в корзинуну**',
+        '✅ Последний заказ добавлен в корзину',
         { parse_mode: 'Markdown', ...getMainKeyboard() }
     );
 });
@@ -300,16 +302,16 @@ bot.action('feedback_button', async (ctx) => {
     const session = getSession(ctx.from.id);
     session.waitingFor = 'feedback';
     await ctx.answerCbQuery();
-    await ctx.reply('✍️ Напишите ваш отзыв о нашем магазине:', { parse_mode: 'Markdown' });
+    await ctx.reply('✍️ Напишите ваш отзыв о нашем магазине:\n(можно одним сообщением)', { parse_mode: 'Markdown' });
 });
 
 bot.action('help_button', async (ctx) => {
     await ctx.answerCbQuery();
     await ctx.reply(
-        Инструкция:я:**\n\n' +
+        '📖 Инструкция:\n\n' +
         '1️⃣ Нажмите кнопку с товаром, чтобы добавить его в корзину.\n' +
-        '2️⃣ Нажмите «🛒 Корзина», чтобы посмотреть выбранные товары.\n' +
-        '3️⃣ Нажмите «📦 Оформить заказ» и введите адрес и телефон.\n' +
+        '2️⃣ Нажмите «Корзина», чтобы посмотреть выбранные товары.\n' +
+        '3️⃣ Нажмите «Оформить заказ» и введите адрес и телефон.\n' +
         '4️⃣ После оформления вы получите подтверждение.\n\n' +
         '💬 Если есть вопросы – напишите /feedback.',
         { parse_mode: 'Markdown' }
@@ -322,8 +324,7 @@ bot.action('status_button', async (ctx) => {
         return;
     }
     await ctx.answerCbQuery();
-    await ctx.reply('📊 Запрос статуса...');
-    await bot.telegram.sendMessage(ctx.from.id, '/status');
+    await ctx.reply('/status');
 });
 
 bot.action('export_button', async (ctx) => {
@@ -332,7 +333,7 @@ bot.action('export_button', async (ctx) => {
         return;
     }
     await ctx.answerCbQuery('📤 Генерирую экспорт...');
-    await bot.telegram.sendMessage(ctx.from.id, '/export');
+    await ctx.reply('/export');
 });
 
 // ============ ОБРАБОТКА ТЕКСТА ============
@@ -343,8 +344,7 @@ bot.on('text', async (ctx) => {
     
     if (session.waitingFor === 'address') {
         const cart = getCart(ctx.from.id);
-        if (cart.length === 0) {
-            await ctx.reply('❌ Корзина пуста.');
+        if (cart.length === 0) {await ctx.reply('❌ Корзина пуста. Начните заново.');
             session.waitingFor = null;
             return;
         }
@@ -364,13 +364,19 @@ bot.on('text', async (ctx) => {
         session.waitingFor = null;
         
         await ctx.reply(
-            ✅ **Заказ оформлен!**\n\n📦 #${order.id}\n📍 ${text}\n\nСпасибо за покупку! 🎉,
+            '✅ Заказ оформлен!\n\n' +
+            '📦 Номер заказа: #' + order.id + '\n' +
+            '📍 Адрес: ' + text + '\n\n' +
+            'Спасибо за покупку! 🎉',
             { parse_mode: 'Markdown', ...getMainKeyboard() }
         );
         
         await bot.telegram.sendMessage(
             ADMIN_ID,
-            🆕 **Новый заказ!**\n\n👤 @${ctx.from.username || 'нет'}\n📦 #${order.id}\n📍 ${text}
+            '🆕 Новый заказ!\n\n' +
+            '👤 Пользователь: @' + (ctx.from.username || 'нет') + '\n' +
+            '📦 Заказ #' + order.id + '\n' +
+            '📍 Адрес: ' + text
         );
         return;
     }
@@ -385,22 +391,52 @@ bot.on('text', async (ctx) => {
         session.waitingFor = null;
         
         await ctx.reply(
-       Спасибо за ваш отзыв!отзыв!** 💙',
+            '✅ Спасибо за ваш отзыв! 💙',
             { parse_mode: 'Markdown', ...getMainKeyboard() }
         );
         
         await bot.telegram.sendMessage(
             ADMIN_ID,
-            💬 **Новый отзыв!**\n\n👤 @${ctx.from.username || 'нет'}\n📝 ${text}
+            '💬 Новый отзыв!\n\n' +
+            '👤 Пользователь: @' + (ctx.from.username || 'нет') + '\n' +
+            '📝 Текст: ' + text
         );
     }
 });
 
-// ============ ЗАПУСК ============
-bot.launch().then(() => {
-    console.log('✅ Бот запущен!');
-    console.log(👤 Админ ID: ${ADMIN_ID});
+// ============ HTTP СЕРВЕР ============
+const app = express();
+app.use(express.json());
+
+// Webhook endpoint
+app.post('/webhook', (req, res) => {
+    bot.handleUpdate(req.body, res);
 });
+
+// Проверка работы сервера
+app.get('/', (req, res) => {
+    res.send('✅ Бот работает!');
+});
+
+// ============ ЗАПУСК ============
+// Запускаем HTTP сервер
+app.listen(PORT, () => {
+    console.log('✅ HTTP сервер запущен на порту ' + PORT);
+    console.log('🌐 http://localhost:' + PORT);
+});
+
+// Запускаем бота в режиме webhook
+bot.telegram.setWebhook('https://ВАШ_ДОМЕН/webhook').then(() => {
+    console.log('✅ Webhook установлен');
+    console.log('👤 Админ ID: ' + ADMIN_ID);
+}).catch(err => {
+    console.log('⚠️ Webhook не установлен, бот работает в polling режиме');
+    // Если webhook не работает - запускаем в polling режиме
+    bot.launch();
+});
+
+// Для polling режима (если webhook не работает)
+// bot.launch();
 
 process.once('SIGINT', () => bot.stop('SIGINT'));
 process.once('SIGTERM', () => bot.stop('SIGTERM'));
