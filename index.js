@@ -179,6 +179,72 @@ bot.command('status', async (ctx) => {
     await ctx.reply(text, { parse_mode: 'Markdown' });
 });
 
+// ============ УДАЛЕНИЕ ЗАКАЗОВ (ТОЛЬКО АДМИН) ============
+
+// 1. Удалить ВСЕ заказы
+bot.command('clear_orders', async (ctx) => {
+    if (ctx.from.id !== ADMIN_ID) {
+        await ctx.reply('⛔ Доступ запрещён. Только для администратора.');
+        return;
+    }
+    
+    fs.writeFileSync(ORDERS_FILE, '[]');
+    await ctx.reply('🗑 Все заказы удалены!', { parse_mode: 'Markdown' });
+});
+
+// 2. Удалить заказ по номеру
+bot.command('del_order', async (ctx) => {
+    if (ctx.from.id !== ADMIN_ID) {
+        await ctx.reply('⛔ Доступ запрещён. Только для администратора.');
+        return;
+    }
+    
+    const args = ctx.message.text.split(' ');
+    if (args.length < 2) {
+        await ctx.reply('❌ Укажите номер заказа.\nПример: /del_order 1742500000001');
+        return;
+    }
+    
+    const orderId = parseInt(args[1]);
+    let orders = JSON.parse(fs.readFileSync(ORDERS_FILE));
+    const initialLength = orders.length;
+    orders = orders.filter(o => o.id !== orderId);
+    
+    if (orders.length === initialLength) {
+        await ctx.reply('❌ Заказ #' + orderId + ' не найден.');
+        return;
+    }
+    
+    fs.writeFileSync(ORDERS_FILE, JSON.stringify(orders, null, 2));
+    await ctx.reply('✅ Заказ #' + orderId + ' удалён!');
+});
+
+// 3. Удалить заказы конкретного пользователя
+bot.command('del_user', async (ctx) => {
+    if (ctx.from.id !== ADMIN_ID) {await ctx.reply('⛔ Доступ запрещён. Только для администратора.');
+        return;
+    }
+    
+    const args = ctx.message.text.split(' ');
+    if (args.length < 2) {
+        await ctx.reply('❌ Укажите ID пользователя.\nПример: /del_user 5179932939');
+        return;
+    }
+    
+    const userId = parseInt(args[1]);
+    let orders = JSON.parse(fs.readFileSync(ORDERS_FILE));
+    const initialLength = orders.length;
+    orders = orders.filter(o => o.userId !== userId);
+    
+    if (orders.length === initialLength) {
+        await ctx.reply('❌ Заказов пользователя ' + userId + ' не найдено.');
+        return;
+    }
+    
+    fs.writeFileSync(ORDERS_FILE, JSON.stringify(orders, null, 2));
+    await ctx.reply('✅ Все заказы пользователя ' + userId + ' удалены! (' + (initialLength - orders.length) + ' заказов)');
+});
+
 // ============ ДЕЙСТВИЯ ============
 
 bot.action(/add_(\d+)/, async (ctx) => {
@@ -273,7 +339,6 @@ bot.action('checkout', async (ctx) => {
 bot.action('repeat_order', async (ctx) => {
     const orders = JSON.parse(fs.readFileSync(ORDERS_FILE));
     const userOrders = orders.filter(o => o.userId === ctx.from.id);
-    
     if (userOrders.length === 0) {
         await ctx.answerCbQuery('❌ У вас пока нет заказов', true);
         return;
@@ -344,7 +409,8 @@ bot.on('text', async (ctx) => {
     
     if (session.waitingFor === 'address') {
         const cart = getCart(ctx.from.id);
-        if (cart.length === 0) {await ctx.reply('❌ Корзина пуста. Начните заново.');
+        if (cart.length === 0) {
+            await ctx.reply('❌ Корзина пуста. Начните заново.');
             session.waitingFor = null;
             return;
         }
@@ -423,7 +489,7 @@ app.listen(PORT, () => {
 });
 
 bot.launch().then(() => {
-    console.log('✅ Бот запущен в polling режиме');
+    console.log('✅ Бот запущен!');
     console.log('👤 Админ ID: ' + ADMIN_ID);
 });
 
