@@ -4,8 +4,8 @@ const fs = require('fs');
 const path = require('path');
 
 // ========== НАСТРОЙКИ ==========
-const BOT_TOKEN = '8916472134:AAE3-pCZpxR2xCm7pC3I6YvGwWDUPW8cQmc';   // ЗАМЕНИТЬ НА РЕАЛЬНЫЙ ТОКЕН
-const ADMIN_ID = 5179932939;         // ТВОЙ TELEGRAM ID
+const BOT_TOKEN = '8916472134:AAE3-pCZpxR2xCm7pC3I6YvGwWDUPW8cQmc';          // ЗАМЕНИ НА СВОЙ ТОКЕН
+const ADMIN_ID = 5179932939;             // ТВОЙ TELEGRAM ID
 
 // ========== ТОВАРЫ ==========
 const GOODS = [
@@ -17,54 +17,41 @@ const GOODS = [
     { id: 6, name: 'Резисторы 0805 (набор 300 шт, 15 номиналов)', price: 15 }
 ];
 
-// ========== ФАЙЛЫ ДЛЯ ХРАНЕНИЯ ==========
+// ========== ФАЙЛЫ ==========
 const ORDERS_FILE = path.join(__dirname, 'orders.json');
 const FEEDBACKS_FILE = path.join(__dirname, 'feedbacks.json');
 const CONTACTS_FILE = path.join(__dirname, 'contacts.json');
 
-// СОЗДАЁМ ФАЙЛЫ, ЕСЛИ ИХ НЕТ
 if (!fs.existsSync(ORDERS_FILE)) fs.writeFileSync(ORDERS_FILE, '[]');
 if (!fs.existsSync(FEEDBACKS_FILE)) fs.writeFileSync(FEEDBACKS_FILE, '[]');
 if (!fs.existsSync(CONTACTS_FILE)) fs.writeFileSync(CONTACTS_FILE, '[]');
 
-// ========== СЕССИИ (В ПАМЯТИ) ==========
+// ========== СЕССИИ И КОРЗИНЫ ==========
 const sessions = new Map();
+const carts = new Map();
+const bot = new Telegraf(BOT_TOKEN);
 
 function getSession(userId) {
-    if (!sessions.has(userId)) {
-        sessions.set(userId, {});
-    }
+    if (!sessions.has(userId)) sessions.set(userId, {});
     return sessions.get(userId);
 }
-
-// ========== КОРЗИНЫ ==========
-const carts = new Map();
 
 function getCart(userId) {
     if (!carts.has(userId)) carts.set(userId, []);
     return carts.get(userId);
 }
 
-// ========== СОХРАНЕНИЕ ЗАКАЗА ==========
 function saveOrder(order) {
     const orders = JSON.parse(fs.readFileSync(ORDERS_FILE));
     orders.push(order);
     fs.writeFileSync(ORDERS_FILE, JSON.stringify(orders, null, 2));
 
-    // СОХРАНЯЕМ КОНТАКТ ДЛЯ РАССЫЛКИ
     const contacts = JSON.parse(fs.readFileSync(CONTACTS_FILE));
     if (!contacts.some(c => c.userId === order.userId)) {
-        contacts.push({
-            userId: order.userId,
-            phone: order.phone,
-            date: new Date().toISOString()
-        });
+        contacts.push({ userId: order.userId, phone: order.phone, date: new Date().toISOString() });
         fs.writeFileSync(CONTACTS_FILE, JSON.stringify(contacts, null, 2));
     }
 }
-
-// ========== БОТ ==========
-const bot = new Telegraf(BOT_TOKEN);
 
 // ========== ГЛАВНАЯ КЛАВИАТУРА ==========
 function getMainKeyboard() {
@@ -72,9 +59,7 @@ function getMainKeyboard() {
         return Markup.button.callback(g.name + ' - ' + g.price + ' BYN', 'add_' + g.id);
     });
     const rows = [];
-    for (let i = 0; i < buttons.length; i += 2) {
-        rows.push(buttons.slice(i, i + 2));
-    }
+    for (let i = 0; i < buttons.length; i += 2) rows.push(buttons.slice(i, i + 2));
     rows.push([Markup.button.callback('🛒 Корзина', 'show_cart')]);
     rows.push([Markup.button.callback('📦 Оформить заказ', 'checkout')]);
     rows.push([Markup.button.callback('🔄 Повторить заказ', 'repeat_order')]);
@@ -83,11 +68,10 @@ function getMainKeyboard() {
     return Markup.inlineKeyboard(rows);
 }
 
-// ========== КОМАНДА /start ==========
+// ========== КОМАНДЫ ==========
 bot.start(async (ctx) => {
-    const userId = ctx.from.id;
-    carts.set(userId, []);
-    sessions.set(userId, {});
+    carts.set(ctx.from.id, []);
+    sessions.set(ctx.from.id, {});
     await ctx.reply(
         '👋 *Привет! Добро пожаловать в магазин радиодеталей.*\n\n' +
         'Выберите товары из каталога и оформите заказ.\n' +
@@ -96,7 +80,6 @@ bot.start(async (ctx) => {
     );
 });
 
-// ========== ПОМОЩЬ ==========
 bot.action('help_button', async (ctx) => {
     await ctx.answerCbQuery();
     await ctx.reply(
@@ -109,11 +92,11 @@ bot.action('help_button', async (ctx) => {
         { parse_mode: 'Markdown' }
     );
 });
+
 bot.command('help', async (ctx) => {
     await ctx.reply(
         '📖 *Инструкция:*\n\n' +
-        '1. Нажмите кнопку с товаром, чтобы добавить его в корзину.\n' +
-        '2. Нажмите «Корзина», чтобы посмотреть выбранные товары.\n' +
+        '1. Нажмите кнопку с товаром, чтобы добавить его в корзину.\n' +'2. Нажмите «Корзина», чтобы посмотреть выбранные товары.\n' +
         '3. Нажмите «Оформить заказ» и введите адрес и телефон.\n' +
         '4. После оформления вы получите подтверждение.\n\n' +
         '💬 Если есть вопросы — напишите /feedback.',
@@ -121,21 +104,14 @@ bot.command('help', async (ctx) => {
     );
 });
 
-// ========== ДОБАВЛЕНИЕ ТОВАРА ==========
 bot.action(/add_(\d+)/, async (ctx) => {
-    const productId = parseInt(ctx.match[1], 10);
+    const productId = parseInt(ctx.match[1]);
     const product = GOODS.find(g => g.id === productId);
-    if (!product) {
-        await ctx.answerCbQuery('❌ Товар не найден');
-        return;
-    }
+    if (!product) return ctx.answerCbQuery('❌ Товар не найден');
     const cart = getCart(ctx.from.id);
     const existing = cart.find(item => item.id === productId);
-    if (existing) {
-        existing.quantity += 1;
-    } else {
-        cart.push({ id: productId, quantity: 1 });
-    }
+    if (existing) existing.quantity += 1;
+    else cart.push({ id: productId, quantity: 1 });
     await ctx.answerCbQuery('✅ ' + product.name + ' добавлен');
     await ctx.editMessageText(
         '📦 *' + product.name + '*\n💰 ' + product.price + ' BYN\n📌 Количество: ' + (existing ? existing.quantity : 1),
@@ -143,7 +119,6 @@ bot.action(/add_(\d+)/, async (ctx) => {
     );
 });
 
-// ========== КОРЗИНА ==========
 bot.action('show_cart', async (ctx) => {
     const cart = getCart(ctx.from.id);
     if (cart.length === 0) {
@@ -169,7 +144,6 @@ bot.action('show_cart', async (ctx) => {
     });
 });
 
-// ========== ОЧИСТКА И НАЗАД ==========
 bot.action('clear_cart', async (ctx) => {
     carts.set(ctx.from.id, []);
     await ctx.answerCbQuery('🗑 Корзина очищена');
@@ -183,7 +157,6 @@ bot.action('back_catalog', async (ctx) => {
     );
 });
 
-// ========== ПОВТОР ЗАКАЗА ==========
 bot.action('repeat_order', async (ctx) => {
     const orders = JSON.parse(fs.readFileSync(ORDERS_FILE));
     const userOrders = orders.filter(o => o.userId === ctx.from.id);
@@ -195,29 +168,25 @@ bot.action('repeat_order', async (ctx) => {
     const cart = getCart(ctx.from.id);
     last.items.forEach(item => {
         const existing = cart.find(i => i.id === item.id);
-        if (existing) {
-            existing.quantity += item.quantity;
-        } else {
-            cart.push({ id: item.id, quantity: item.quantity });
-        }
+        if (existing) existing.quantity += item.quantity;
+        else cart.push({ id: item.id, quantity: item.quantity });
     });
     await ctx.answerCbQuery('✅ Последний заказ добавлен в корзину');
     await ctx.editMessageText('🔄 *Последний заказ добавлен в корзину.*', { parse_mode: 'Markdown', ...getMainKeyboard() });
 });
 
-// ========== ОТЗЫВЫ ==========
 bot.action('feedback_button', async (ctx) => {
     const session = getSession(ctx.from.id);
     session.waitingFor = 'feedback';
     await ctx.reply('📝 *Напишите ваш отзыв о нашем магазине:*\n(можно одним сообщением)', { parse_mode: 'Markdown' });
 });
+
 bot.command('feedback', async (ctx) => {
     const session = getSession(ctx.from.id);
     session.waitingFor = 'feedback';
     await ctx.reply('📝 *Напишите ваш отзыв о нашем магазине:*\n(можно одним сообщением)', { parse_mode: 'Markdown' });
 });
 
-// ========== ОФОРМЛЕНИЕ ЗАКАЗА ==========
 bot.action('checkout', async (ctx) => {
     const cart = getCart(ctx.from.id);
     if (cart.length === 0) {
@@ -229,14 +198,12 @@ bot.action('checkout', async (ctx) => {
     await ctx.reply('📝 *Введите ваш адрес:*\n(город, улица, дом, квартира)', { parse_mode: 'Markdown' });
 });
 
-// ========== ОБРАБОТКА ТЕКСТА ==========
 bot.on('text', async (ctx) => {
     const userId = ctx.from.id;
     const text = ctx.message.text.trim();
     const cart = getCart(userId);
     const session = getSession(userId);
 
-    // Если ждём адрес
     if (session.waitingFor === 'address') {
         session.address = text;
         session.waitingFor = 'phone';
@@ -244,7 +211,6 @@ bot.on('text', async (ctx) => {
         return;
     }
 
-    // Если ждём телефон
     if (session.waitingFor === 'phone') {
         if (cart.length === 0) {
             await ctx.reply('❌ *Корзина пуста*', { parse_mode: 'Markdown', ...getMainKeyboard() });
@@ -264,7 +230,7 @@ bot.on('text', async (ctx) => {
         const order = {
             id: Date.now(),
             userId: userId,
-            items: cart.slice(), // копия
+            items: cart.slice(),
             total: total,
             address: session.address,
             phone: text,
@@ -272,7 +238,6 @@ bot.on('text', async (ctx) => {
             status: 'новый'
         };
         saveOrder(order);
-
         await ctx.reply(
             '✅ *Заказ #' + order.id + ' оформлен!*\n\n' +
             '📦 *Состав:*\n' + itemsText +
@@ -282,11 +247,8 @@ bot.on('text', async (ctx) => {
             '🙏 Спасибо за покупку!',
             { parse_mode: 'Markdown', ...getMainKeyboard() }
         );
-
         carts.set(userId, []);
-        sessions.set(userId, {}); // очищаем сессию
-
-        // Уведомление админу
+        sessions.set(userId, {});
         await bot.telegram.sendMessage(
             ADMIN_ID,
             '📦 *НОВЫЙ ЗАКАЗ #' + order.id + '*\n\n' +
@@ -299,7 +261,6 @@ bot.on('text', async (ctx) => {
         return;
     }
 
-    // Если ждём отзыв
     if (session.waitingFor === 'feedback') {
         const feedbacks = JSON.parse(fs.readFileSync(FEEDBACKS_FILE));
         feedbacks.push({
@@ -314,7 +275,6 @@ bot.on('text', async (ctx) => {
         return;
     }
 
-    // Если просто текст
     await ctx.reply('Используйте кнопки меню.', getMainKeyboard());
 });
 
@@ -325,7 +285,7 @@ bot.command('orders', async (ctx) => {
         return;
     }
     const orders = JSON.parse(fs.readFileSync(ORDERS_FILE));
-    if (orders.length === 0) {
+    if (!orders.length) {
         await ctx.reply('📭 Заказов пока нет.');
         return;
     }
@@ -346,7 +306,7 @@ bot.command('status', async (ctx) => {
         await ctx.reply('📌 Формат: /status <id> <новый статус>\nНапример: /status 1234567890 отправлен');
         return;
     }
-    const id = parseInt(parts[1], 10);
+    const id = parseInt(parts[1]);
     const newStatus = parts.slice(2).join(' ');
     const orders = JSON.parse(fs.readFileSync(ORDERS_FILE));
     const order = orders.find(o => o.id === id);
@@ -357,7 +317,6 @@ bot.command('status', async (ctx) => {
     order.status = newStatus;
     fs.writeFileSync(ORDERS_FILE, JSON.stringify(orders, null, 2));
     await ctx.reply('✅ Статус заказа #' + id + ' изменён на "' + newStatus + '"');
-    // Отправить уведомление клиенту
     try {
         await bot.telegram.sendMessage(
             order.userId,
@@ -372,8 +331,8 @@ bot.command('export', async (ctx) => {
         return;
     }
     const orders = JSON.parse(fs.readFileSync(ORDERS_FILE));
-    if (orders.length === 0) {
-        await ctx.reply('📭 Заказов нет.');
+    if (!orders.length) {
+        await ctx.reply('📭 Заказов пока нет.');
         return;
     }
     let csv = 'ID,Дата,Товары,Сумма,Адрес,Телефон,Статус\n';
@@ -401,7 +360,7 @@ bot.command('broadcast', async (ctx) => {
         return;
     }
     const contacts = JSON.parse(fs.readFileSync(CONTACTS_FILE));
-    if (contacts.length === 0) {
+    if (!contacts.length) {
         await ctx.reply('📭 Нет контактов для рассылки.');
         return;
     }
