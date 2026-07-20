@@ -5,7 +5,7 @@ const path = require('path');
 const express = require('express');
 
 // ============ НАСТРОЙКИ ============
-const BOT_TOKEN = '8916472134:AAE3-pCZpxR2xCm7pC3I6YvGwIDUPW8CQmc';
+const BOT_TOKEN = '8916472134:AAGEakb5G9SzUZ2vfqGVKh2RZMTNLw97tjA';
 const ADMIN_ID = 5179932939;
 const PORT = 3000;
 
