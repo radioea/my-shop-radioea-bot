@@ -156,7 +156,7 @@ bot.command('status', async (ctx) => {
             order.items.forEach(item => {
                 const product = GOODS.find(g => g.id === item.id);
                 const name = product ? product.name : 'Товар #' + item.id;
-                sales[name] = (sales[name]  0) + (item.quantity  1);
+                sales[name] = (sales[name] ||  0) + (item.quantity || 1);
             });
         }
     });
