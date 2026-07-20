@@ -107,7 +107,7 @@ bot.command('export', async (ctx) => {
         return;
     }
 
-       try {
+        try {
         const orders = JSON.parse(fs.readFileSync(ORDERS_FILE));
         const feedbacks = JSON.parse(fs.readFileSync(FEEDBACKS_FILE));
         
@@ -408,35 +408,24 @@ bot.on('text', async (ctx) => {
 const app = express();
 app.use(express.json());
 
-// Webhook endpoint
 app.post('/webhook', (req, res) => {
     bot.handleUpdate(req.body, res);
 });
 
-// Проверка работы сервера
 app.get('/', (req, res) => {
     res.send('✅ Бот работает!');
 });
 
 // ============ ЗАПУСК ============
-// Запускаем HTTP сервер
 app.listen(PORT, () => {
     console.log('✅ HTTP сервер запущен на порту ' + PORT);
     console.log('🌐 http://localhost:' + PORT);
 });
 
-// Запускаем бота в режиме webhook
-bot.telegram.setWebhook('https://ВАШ_ДОМЕН/webhook').then(() => {
-    console.log('✅ Webhook установлен');
+bot.launch().then(() => {
+    console.log('✅ Бот запущен в polling режиме');
     console.log('👤 Админ ID: ' + ADMIN_ID);
-}).catch(err => {
-    console.log('⚠️ Webhook не установлен, бот работает в polling режиме');
-    // Если webhook не работает - запускаем в polling режиме
-    bot.launch();
 });
-
-// Для polling режима (если webhook не работает)
-// bot.launch();
 
 process.once('SIGINT', () => bot.stop('SIGINT'));
 process.once('SIGTERM', () => bot.stop('SIGTERM'));
