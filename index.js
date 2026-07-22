@@ -325,8 +325,8 @@ bot.hears('📦 Статус', (ctx) => {
   }
 
   const buttons = [
-    Markup.button.callback(📋 Заказы (${orders.length}), 'view_orders'),
-    Markup.button.callback(⭐ Отзывы (${reviews.length}), 'view_reviews')
+    Markup.button.callback(`📋 Заказы (${orders.length})`, 'view_orders'),
+    Markup.button.callback(`⭐ Отзывы (${reviews.length})`, 'view_reviews')
   ];
   if (userId === ADMIN_ID) {
     buttons.push(Markup.button.callback('⚙️ Админ-панель', 'admin_panel'));
