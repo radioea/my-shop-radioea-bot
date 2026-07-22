@@ -1,25 +1,36 @@
+
 const { Telegraf, Markup, session } = require('telegraf');
 const express = require('express');
 const fs = require('fs');
 const path = require('path');
 
-// ======================== НАСТРОЙКИ ========================
+// ==================== НАСТРОЙКИ ====================
 const BOT_TOKEN = process.env.BOT_TOKEN || '8916472134:AAGEakb5G9SzUZ2vfqGVKh2RZMTNLw97tjA';
-const ADMIN_ID = parseInt(process.env.ADMIN_ID) || 123456789;
+const ADMIN_ID = parseInt(process.env.ADMIN_ID) || 5179932939;
 const PORT = process.env.PORT || 3000;
 
-// ======================== РАБОТА С БАЗОЙ ДАННЫХ ========================
+// ==================== РАБОТА С БАЗОЙ ====================
 const DATA_DIR = path.join(__dirname, 'data');
 const ORDERS_FILE = path.join(DATA_DIR, 'orders.json');
 const REVIEWS_FILE = path.join(DATA_DIR, 'reviews.json');
 const STATUS_FILE = path.join(DATA_DIR, 'status.json');
 
-if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR);
+// Создаём папку data, если её нет
+if (!fs.existsSync(DATA_DIR)) {
+  fs.mkdirSync(DATA_DIR);
+}
 
+// Инициализация файлов с правильным содержимым
 function initDB() {
-  if (!fs.existsSync(ORDERS_FILE)) fs.writeFileSync(ORDERS_FILE, JSON.stringify([]));
-  if (!fs.existsSync(REVIEWS_FILE)) fs.writeFileSync(REVIEWS_FILE, JSON.stringify([]));
-  if (!fs.existsSync(STATUS_FILE)) fs.writeFileSync(STATUS_FILE, JSON.stringify({}));
+  if (!fs.existsSync(ORDERS_FILE)) {
+    fs.writeFileSync(ORDERS_FILE, JSON.stringify([]));
+  }
+  if (!fs.existsSync(REVIEWS_FILE)) {
+    fs.writeFileSync(REVIEWS_FILE, JSON.stringify([]));
+  }
+  if (!fs.existsSync(STATUS_FILE)) {
+    fs.writeFileSync(STATUS_FILE, JSON.stringify({}));
+  }
 }
 initDB();
 
@@ -29,9 +40,12 @@ function getOrders() {
 function getReviews() {
   try { return JSON.parse(fs.readFileSync(REVIEWS_FILE, 'utf8')); } catch { return []; }
 }
-function saveOrders(orders) { fs.writeFileSync(ORDERS_FILE, JSON.stringify(orders, null, 2)); }
-function saveReviews(reviews) { fs.writeFileSync(REVIEWS_FILE, JSON.stringify(reviews, null, 2)); }
-
+function saveOrders(orders) {
+  fs.writeFileSync(ORDERS_FILE, JSON.stringify(orders, null, 2));
+}
+function saveReviews(reviews) {
+  fs.writeFileSync(REVIEWS_FILE, JSON.stringify(reviews, null, 2));
+}
 function loadStatuses() {
   try { return JSON.parse(fs.readFileSync(STATUS_FILE, 'utf8')); } catch { return {}; }
 }
@@ -51,7 +65,7 @@ function addReview(review) {
   return newReview;
 }
 
-// ======================== ПОЛНЫЙ АССОРТИМЕНТ (ключи и базовые статусы) ========================
+// ==================== ТОВАРЫ (полный ассортимент) ====================
 const products = {
   'esp32 devkit': { name: 'ESP32 DevKit V1 (30 pin, Type-C)', price: '19 BYN', status: '✅ В наличии', photo: 'https://example.com/esp32.jpg' },
   'esp8266': { name: 'ESP8266 NodeMCU (Wi-Fi)', price: '15 BYN', status: '🚚 Под заказ (14–30 дней)', photo: 'https://example.com/esp8266.jpg' },
@@ -65,7 +79,7 @@ const products = {
   'oled 0.96': { name: 'OLED 0.96" I2C (SSD1306)', price: '9 BYN', status: '✅ В наличии', photo: 'https://example.com/oled96.jpg' },
   'oled 1.3': { name: 'OLED 1.3" I2C (SH1106)', price: '12 BYN', status: '🚚 Под заказ (14–30 дней)', photo: 'https://example.com/oled13.jpg' },
   'lcd 1602': { name: 'LCD 1602 (синий/жёлтый)', price: '9 BYN', status: '🚚 Под заказ (14–30 дней)', photo: 'https://example.com/lcd1602.jpg' },
-    'lcd 2004': { name: 'LCD 2004 (20x4)', price: '11 BYN', status: '🚚 Под заказ (14–30 дней)', photo: 'https://example.com/lcd2004.jpg' },
+  'lcd 2004': { name: 'LCD 2004 (20x4)', price: '11 BYN', status: '🚚 Под заказ (14–30 дней)', photo: 'https://example.com/lcd2004.jpg' },
   'tft 1.8': { name: 'TFT 1.8" ST7735 (128x160)', price: '12 BYN', status: '🚚 Под заказ (14–30 дней)', photo: 'https://example.com/tft18.jpg' },
   'tft 2.4': { name: 'TFT 2.4" ILI9341 (320x240)', price: '18 BYN', status: '🚚 Под заказ (14–30 дней)', photo: 'https://example.com/tft24.jpg' },
   '7 segment': { name: '7-сегментный индикатор (4 разряда)', price: '6 BYN', status: '🚚 Под заказ (14–30 дней)', photo: 'https://example.com/7seg.jpg' },
@@ -91,7 +105,7 @@ const products = {
   '2n3904': { name: '2N3904 (NPN) — 10 шт.', price: '5 BYN', status: '🚚 Под заказ (14–30 дней)', photo: 'https://example.com/2n3904.jpg' },
   '2n3906': { name: '2N3906 (PNP) — 10 шт.', price: '5 BYN', status: '🚚 Под заказ (14–30 дней)', photo: 'https://example.com/2n3906.jpg' },
   's8050': { name: 'S8050 (NPN) — 10 шт.', price: '4 BYN', status: '🚚 Под заказ (14–30 дней)', photo: 'https://example.com/s8050.jpg' },
-'s8550': { name: 'S8550 (PNP) — 10 шт.', price: '4 BYN', status: '🚚 Под заказ (14–30 дней)', photo: 'https://example.com/s8550.jpg' },
+  's8550': { name: 'S8550 (PNP) — 10 шт.', price: '4 BYN', status: '🚚 Под заказ (14–30 дней)', photo: 'https://example.com/s8550.jpg' },
   'bc337': { name: 'BC337 (NPN) — 10 шт.', price: '5 BYN', status: '🚚 Под заказ (14–30 дней)', photo: 'https://example.com/bc337.jpg' },
   'bc327': { name: 'BC327 (PNP) — 10 шт.', price: '5 BYN', status: '🚚 Под заказ (14–30 дней)', photo: 'https://example.com/bc327.jpg' },
   'a1015': { name: 'A1015 (PNP) — 10 шт.', price: '4 BYN', status: '🚚 Под заказ (14–30 дней)', photo: 'https://example.com/a1015.jpg' },
@@ -118,7 +132,7 @@ const products = {
   '74hc00': { name: '74HC00 (4 элемента 2И-НЕ) — 1 шт.', price: '3 BYN', status: '🚚 Под заказ (14–30 дней)', photo: 'https://example.com/74hc00.jpg' },
   '74hc04': { name: '74HC04 (6 инверторов) — 1 шт.', price: '3 BYN', status: '🚚 Под заказ (14–30 дней)', photo: 'https://example.com/74hc04.jpg' },
   'pc817': { name: 'PC817 (оптопара) — 1 шт.', price: '2 BYN', status: '🚚 Под заказ (14–30 дней)', photo: 'https://example.com/pc817.jpg' },
-    'moc3021': { name: 'MOC3021 (оптосимистор) — 1 шт.', price: '3 BYN', status: '🚚 Под заказ (14–30 дней)', photo: 'https://example.com/moc3021.jpg' },
+  'moc3021': { name: 'MOC3021 (оптосимистор) — 1 шт.', price: '3 BYN', status: '🚚 Под заказ (14–30 дней)', photo: 'https://example.com/moc3021.jpg' },
   '7805': { name: '7805 (+5V, 1A) — 1 шт.', price: '3 BYN', status: '🚚 Под заказ (14–30 дней)', photo: 'https://example.com/7805.jpg' },
   '7812': { name: '7812 (+12V, 1A) — 1 шт.', price: '3 BYN', status: '🚚 Под заказ (14–30 дней)', photo: 'https://example.com/7812.jpg' },
   '7905': { name: '7905 (-5V, 1A) — 1 шт.', price: '4 BYN', status: '🚚 Под заказ (14–30 дней)', photo: 'https://example.com/7905.jpg' },
@@ -143,7 +157,7 @@ const products = {
   '12v 2a': { name: '12V 2A (адаптер)', price: '10 BYN', status: '🚚 Под заказ (14–30 дней)', photo: 'https://example.com/12v2a.jpg' },
   '12v 5a': { name: '12V 5A (импульсный)', price: '22 BYN', status: '🚚 Под заказ (14–30 дней)', photo: 'https://example.com/12v5a.jpg' },
   '12v 10a': { name: '12V 10A (импульсный)', price: '32 BYN', status: '🚚 Под заказ (14–30 дней)', photo: 'https://example.com/12v10a.jpg' },
-    '24v 5a': { name: '24V 5A (импульсный)', price: '28 BYN', status: '🚚 Под заказ (14–30 дней)', photo: 'https://example.com/24v5a.jpg' },
+  '24v 5a': { name: '24V 5A (импульсный)', price: '28 BYN', status: '🚚 Под заказ (14–30 дней)', photo: 'https://example.com/24v5a.jpg' },
   'lm2596': { name: 'LM2596 (понижающий, 3A)', price: '4 BYN', status: '🚚 Под заказ (14–30 дней)', photo: 'https://example.com/lm2596.jpg' },
   'xl4015': { name: 'XL4015 (понижающий, 5A)', price: '6 BYN', status: '🚚 Под заказ (14–30 дней)', photo: 'https://example.com/xl4015.jpg' },
   'mt3608': { name: 'MT3608 (повышающий, 2A)', price: '4 BYN', status: '🚚 Под заказ (14–30 дней)', photo: 'https://example.com/mt3608.jpg' },
@@ -166,35 +180,28 @@ const products = {
   'пин гребёнки': { name: 'Пин-гребёнки (40 pin)', price: '3 BYN', status: '🚚 Под заказ (14–30 дней)', photo: 'https://example.com/pin_headers.jpg' }
 };
 
-// ======================== ИНИЦИАЛИЗАЦИЯ БОТА ========================
+// ==================== БОТ И СЕРВЕР ====================
 const bot = new Telegraf(BOT_TOKEN);
 bot.use(session());
 
 const app = express();
-
-// ======================== HTTP-СЕРВЕР ========================
-app.get('/', (req, res) => {
-  res.send('✅ RadioPartsBY Bot is running!');
-});
+app.get('/', (req, res) => res.send('✅ RadioPartsBY Bot is running!'));
 app.listen(PORT, () => {
- console.log("✅ HTTP server running on port " + PORT);
+  console.log(✅ HTTP server running on port ${PORT});
 });
 
-// ======================== ФУНКЦИЯ ДЛЯ ЗВЁЗД ========================
 function getStars(rating) {
   return '⭐'.repeat(rating) + '☆'.repeat(5 - rating);
 }
 
-// ======================== ОБРАБОТЧИКИ БОТА ========================
-
+// -------------------- СТАРТ --------------------
 bot.start((ctx) => {
   const keyboard = Markup.keyboard([
     ['🛒 Каталог', '📦 Корзина', '📦 Статус'],
     ['📞 Помощь', '⭐ Оставить отзыв']
   ]).resize();
-
   ctx.reply(
-    `👋 Добро пожаловать в RadioPartsBY!
+    👋 Добро пожаловать в RadioPartsBY!
 
 ✅ В наличии:
 • ESP32 DevKit — 19 BYN
@@ -202,34 +209,33 @@ bot.start((ctx) => {
 • OLED 0.96" — 9 BYN
 
 🚚 Остальные товары — под заказ (14–30 дней).
+
 Напишите название товара или нажмите "🛒 Каталог".,
     keyboard
   );
 });
 
-// ======================== ДИНАМИЧЕСКИЙ КАТАЛОГ ========================
+// -------------------- КАТАЛОГ (динамический) --------------------
 bot.hears('🛒 Каталог', (ctx) => {
   const statuses = loadStatuses();
-
   const categories = {
-    '🔹 МИКРОКОНТРОЛЛЕРЫ': ['esp32 devkit', 'esp8266', 'arduino nano', 'arduino uno', 'arduino mega', 'stm32', 'raspberry pi pico', 'esp32-cam', 'esp32-s3'],
-    '🔹 ДИСПЛЕИ': ['oled 0.96', 'oled 1.3', 'lcd 1602', 'lcd 2004', 'tft 1.8', 'tft 2.4', '7 segment', 'max7219'],
-    '🔹 ДАТЧИКИ': ['hc-sr04', 'dht22', 'dht11', 'ds18b20', 'bme280', 'mpu6050', 'hc-05', 'rfid rc522', 'max30102', 'mq-2', 'ttp223', 'ky-038', 'pir hc-sr501', 'фоторезистор', 'влажность почвы'],
-    '🔹 ТРАНЗИСТОРЫ (за 10 шт.)': ['bc547', 'bc557', '2n2222', '2n3904', '2n3906', 's8050', 's8550', 'bc337', 'bc327', 'a1015', 'c1815'],
-    '🔹 MOSFET': ['irfz44n', 'irf540n', 'irf3205', 'irlz44n'],
-    '🔹 ДИОДЫ (за 10 шт.)': ['1n4007', '1n4148', '1n5819', '1n5408', 'fr107'],
-    '🔹 СТАБИЛИТРОНЫ (за 10 шт.)': ['bzx55 3.3', 'bzx55 5.1', 'bzx55 12', '1n4742a'],
-    '🔹 МИКРОСХЕМЫ (за 1 шт.)': ['ne555', 'lm358', 'lm324', 'lm393', 'lm741', '74hc595', '74hc00', '74hc04', 'pc817', 'moc3021'],
-    '🔹 СТАБИЛИЗАТОРЫ (за 1 шт.)': ['7805', '7812', '7905', 'lm317', 'lm1117', 'ams1117'],
-    '🔹 РЕЛЕ И ДРАЙВЕРЫ': ['реле 1', 'реле 2', 'реле 4', 'реле 8', 'l298n', 'l293d', 'pca9685', 'a4988'],
-    '🔹 ПАССИВНЫЕ КОМПОНЕНТЫ': ['резисторы 150', 'резисторы 300', 'резисторы выводные', 'конденсаторы керамика', 'конденсаторы электролит', 'конденсаторы пленка'],
-    '🔹 БЛОКИ ПИТАНИЯ': ['5v 2a', '12v 2a', '12v 5a', '12v 10a', '24v 5a', 'lm2596', 'xl4015', 'mt3608'],
-    '🔹 МОТОРЫ И СЕРВО': ['sg90', 'mg90s', 'mg995', 'ds3218', 'моторчик 3v', 'моторчик 6v', 'моторчик 12v', 'n20', '28byj-48', 'nema17'],
-    '🔹 РАЗЪЁМЫ И ПРОВОДА': ['dupont мм', 'dupont пп', 'dupont пм', 'клеммники', 'разъёмы', 'макетная плата', 'пин гребёнки']
+    '🔹 МИКРОКОНТРОЛЛЕРЫ': ['esp32 devkit','esp8266','arduino nano','arduino uno','arduino mega','stm32','raspberry pi pico','esp32-cam','esp32-s3'],
+    '🔹 ДИСПЛЕИ': ['oled 0.96','oled 1.3','lcd 1602','lcd 2004','tft 1.8','tft 2.4','7 segment','max7219'],
+    '🔹 ДАТЧИКИ': ['hc-sr04','dht22','dht11','ds18b20','bme280','mpu6050','hc-05','rfid rc522','max30102','mq-2','ttp223','ky-038','pir hc-sr501','фоторезистор','влажность почвы'],
+    '🔹 ТРАНЗИСТОРЫ (за 10 шт.)': ['bc547','bc557','2n2222','2n3904','2n3906','s8050','s8550','bc337','bc327','a1015','c1815'],
+    '🔹 MOSFET': ['irfz44n','irf540n','irf3205','irlz44n'],
+    '🔹 ДИОДЫ (за 10 шт.)': ['1n4007','1n4148','1n5819','1n5408','fr107'],
+    '🔹 СТАБИЛИТРОНЫ (за 10 шт.)': ['bzx55 3.3','bzx55 5.1','bzx55 12','1n4742a'],
+    '🔹 МИКРОСХЕМЫ (за 1 шт.)': ['ne555','lm358','lm324','lm393','lm741','74hc595','74hc00','74hc04','pc817','moc3021'],
+    '🔹 СТАБИЛИЗАТОРЫ (за 1 шт.)': ['7805','7812','7905','lm317','lm1117','ams1117'],
+    '🔹 РЕЛЕ И ДРАЙВЕРЫ': ['реле 1','реле 2','реле 4','реле 8','l298n','l293d','pca9685','a4988'],
+    '🔹 ПАССИВНЫЕ КОМПОНЕНТЫ': ['резисторы 150','резисторы 300','резисторы выводные','конденсаторы керамика','конденсаторы электролит','конденсаторы пленка'],
+    '🔹 БЛОКИ ПИТАНИЯ': ['5v 2a','12v 2a','12v 5a','12v 10a','24v 5a','lm2596','xl4015','mt3608'],
+    '🔹 МОТОРЫ И СЕРВО': ['sg90','mg90s','mg995','ds3218','моторчик 3v','моторчик 6v','моторчик 12v','n20','28byj-48','nema17'],
+    '🔹 РАЗЪЁМЫ И ПРОВОДА': ['dupont мм','dupont пп','dupont пм','клеммники','разъёмы','макетная плата','пин гребёнки']
   };
 
   let reply = '📦 ПОЛНЫЙ КАТАЛОГ RadioPartsBY:\n\n';
-
   for (const [category, keys] of Object.entries(categories)) {
     reply += ${category}:\n;
     for (const key of keys) {
@@ -246,118 +252,74 @@ bot.hears('🛒 Каталог', (ctx) => {
     }
     reply += '\n';
   }
-
   reply += 'Напишите название товара для фото и подробностей.';
   ctx.reply(reply);
 });
 
-// ======================== ДРУГИЕ КНОПКИ ========================
-bot.hears('📦 Корзина', (ctx) => {
-  ctx.reply('🛒 Ваша корзина пока пуста.\nДобавьте товары через поиск.');
-});
+// -------------------- ДРУГИЕ КНОПКИ --------------------
+bot.hears('📦 Корзина', (ctx) => ctx.reply('🛒 Ваша корзина пока пуста. Добавьте товары через поиск.'));
+bot.hears('📞 Помощь', (ctx) => ctx.reply(
+  📞 Контакты:\n• Telegram: @RadioPartsBY_bot\n• Заказ: t.me/RadioPartsBY_bot\n• Время работы: Пн-Пт 9:00–18:00
+));
 
-bot.hears('📞 Помощь', (ctx) => {
-  ctx.reply(
-    📞 Контакты:
-
-• Telegram: @RadioPartsBY_bot
-• Заказ: t.me/RadioPartsBY_bot
-• Время работы: Пн-Пт 9:00–18:00
-  );
-});
-
-// ======================== ОТЗЫВЫ СО ЗВЁЗДАМИ ========================
-
+// -------------------- ОТЗЫВЫ --------------------
 bot.hears('⭐ Оставить отзыв', (ctx) => {
   const keyboard = Markup.inlineKeyboard([
-    [
-      Markup.button.callback('⭐ 1', 'rating_1'),
-      Markup.button.callback('⭐⭐ 2', 'rating_2'),
-      Markup.button.callback('⭐⭐⭐ 3', 'rating_3')
-    ],
-    [
-      Markup.button.callback('⭐⭐⭐⭐ 4', 'rating_4'),
-      Markup.button.callback('⭐⭐⭐⭐⭐ 5', 'rating_5')
-    ]
+    [Markup.button.callback('⭐ 1', 'rating_1'), Markup.button.callback('⭐⭐ 2', 'rating_2'), Markup.button.callback('⭐⭐⭐ 3', 'rating_3')],
+    [Markup.button.callback('⭐⭐⭐⭐ 4', 'rating_4'), Markup.button.callback('⭐⭐⭐⭐⭐ 5', 'rating_5')]
   ]);
-
   ctx.reply('⭐ Оцените наш магазин от 1 до 5 звёзд:', keyboard);
 });
 
 bot.action(/rating_([1-5])/, (ctx) => {
   const rating = parseInt(ctx.match[1]);
   ctx.answerCbQuery(Вы выбрали ${rating} звёзд);
-
   ctx.session.rating = rating;
-
-  ctx.reply(Вы выбрали ${getStars(rating)}\n\nТеперь напишите текст отзыва:`);
+  ctx.reply(Вы выбрали ${getStars(rating)}\n\nТеперь напишите текст отзыва:);
 });
 
 bot.on('text', (ctx) => {
   const text = ctx.message.text.trim();
-    if (ctx.session.rating && !text.startsWith('/') && !text.startsWith('отзыв:')) {
+  if (ctx.session.rating && !text.startsWith('/') && !text.startsWith('отзыв:')) {
     const rating = ctx.session.rating;
     const review = addReview({
       text: text,
       rating: rating,
-      author: ctx.from.username || ctx.from.first_name || 'Аноним'
+      author: ctx.from.username  ctx.from.first_name  'Аноним'
     });
-
     ctx.session.rating = null;
-
     ctx.reply(
-      `✅ Спасибо за отзыв!\n\n⭐ Оценка: ${getStars(rating)}\n📝 Текст: ${text}\n\nВаш отзыв #${review.id} сохранён.`
+      ✅ Спасибо за отзыв!\n\n⭐ Оценка: ${getStars(rating)}\n📝 Текст: ${text}\n\nВаш отзыв #${review.id} сохранён.
     );
   }
 });
 
-// ======================== СТАТУС ========================
-
+// -------------------- СТАТУС --------------------
 bot.hears('📦 Статус', (ctx) => {
   const orders = getOrders();
   const reviews = getReviews();
   const userId = ctx.from.id;
-
   let avgRating = 0;
   if (reviews.length > 0) {
     const sum = reviews.reduce((acc, r) => acc + (r.rating || 0), 0);
     avgRating = (sum / reviews.length).toFixed(1);
   }
-
   const buttons = [
-    Markup.button.callback(`📋 Заказы (${orders.length})`, 'view_orders'),
-    Markup.button.callback(`⭐ Отзывы (${reviews.length})`, 'view_reviews')
+    Markup.button.callback(📋 Заказы (${orders.length}), 'view_orders'),
+    Markup.button.callback(⭐ Отзывы (${reviews.length}), 'view_reviews')
   ];
   if (userId === ADMIN_ID) {
     buttons.push(Markup.button.callback('⚙️ Админ-панель', 'admin_panel'));
   }
-
   ctx.reply(
-    📊 Статистика:
-
-📦 Всего заказов: ${orders.length}
-⭐ Всего отзывов: ${reviews.length}
-📈 Средний рейтинг: ${avgRating} ${getStars(Math.round(avgRating))},
+    📊 Статистика:\n\n📦 Всего заказов: ${orders.length}\n⭐ Всего отзывов: ${reviews.length}\n📈 Средний рейтинг: ${avgRating} ${getStars(Math.round(avgRating))},
     Markup.inlineKeyboard([buttons])
   );
-});
-
-bot.action('view_reviews', (ctx) => {
-  const reviews = getReviews();
-  if (reviews.length === 0) return ctx.reply('📭 Отзывов пока нет.');
-
-  let text = '⭐ Все отзывы:\n\n';
-  reviews.slice(-10).reverse().forEach((review) => {
-    text += #${review.id} — ${getStars(review.rating || 0)} — ${review.text}\n👤 ${review.author}\n\n;
-  });
-  text += \nВсего: ${reviews.length} отзывов;
-  ctx.reply(text);
 });
 
 bot.action('view_orders', (ctx) => {
   const orders = getOrders();
   if (orders.length === 0) return ctx.reply('📭 Заказов пока нет.');
-
   let text = '📋 Список заказов:\n\n';
   orders.slice(-5).forEach((order) => {
     text += #${order.id} — ${order.items || 'Товары'} — ${order.status}\n;
@@ -366,79 +328,62 @@ bot.action('view_orders', (ctx) => {
   ctx.reply(text);
 });
 
-// ======================== АДМИН-ПАНЕЛЬ ========================
+bot.action('view_reviews', (ctx) => {
+  const reviews = getReviews();
+  if (reviews.length === 0) return ctx.reply('📭 Отзывов пока нет.');
+  let text = '⭐ Все отзывы:\n\n';
+  reviews.slice(-10).reverse().forEach((review) => {
+    text += #${review.id} — ${getStars(review.rating || 0)} — ${review.text}\n👤 ${review.author}\n\n;
+  });
+  text += \nВсего: ${reviews.length} отзывов;
+  ctx.reply(text);
+});
 
 bot.action('admin_panel', (ctx) => {
   if (ctx.from.id !== ADMIN_ID) return ctx.answerCbQuery('⛔ Доступ запрещён!');
   ctx.answerCbQuery();
   ctx.reply(
-    ⚙️ Админ-панель:
-
-/export — выгрузить заказы в файл
-/status — статистика по заказам
-/delete_order — удалить заказ по номеру
-/delete_review — удалить отзыв по номеру
-/set_status — установить статус товара
-/reset_status — сбросить статус товара
+    ⚙️ Админ-панель:\n/export — выгрузить заказы в файл\n/status — статистика по заказам\n/delete_order — удалить заказ по номеру\n/delete_review — удалить отзыв по номеру\n/set_status — установить статус товара\n/reset_status — сбросить статус товара
   );
 });
 
-// ======================== АДМИН-КОМАНДЫ ========================
-
+// -------------------- АДМИН-КОМАНДЫ --------------------
 bot.command('export', (ctx) => {
   if (ctx.from.id !== ADMIN_ID) return ctx.reply('⛔ У вас нет прав.');
-
   const orders = getOrders();
   if (orders.length === 0) return ctx.reply('📭 Нет заказов для экспорта.');
-
   const filePath = path.join(DATA_DIR, 'export_orders.json');
   fs.writeFileSync(filePath, JSON.stringify(orders, null, 2));
-
   ctx.replyWithDocument(
     { source: filePath, filename: orders_${new Date().toISOString().slice(0, 10)}.json },
     { caption: 📦 Экспорт заказов (${orders.length} шт.) }
   );
-
   fs.unlinkSync(filePath);
 });
 
 bot.command('status', (ctx) => {
   if (ctx.from.id !== ADMIN_ID) return ctx.reply('⛔ У вас нет прав.');
-
   const orders = getOrders();
   const reviews = getReviews();
-
   let avgRating = 0;
   if (reviews.length > 0) {
     const sum = reviews.reduce((acc, r) => acc + (r.rating || 0), 0);
     avgRating = (sum / reviews.length).toFixed(1);
   }
-
   ctx.reply(
-    📊 Полная статистика:
-
-📦 Всего заказов: ${orders.length}
-⭐ Всего отзывов: ${reviews.length}
-📈 Средний рейтинг: ${avgRating} ${getStars(Math.round(avgRating))}
-
-В обработке: ${orders.filter(o => o.status === 'В обработке').length}
-Отправлено: ${orders.filter(o => o.status === 'Отправлен').length}
-Доставлено: ${orders.filter(o => o.status === 'Доставлен').length}
+    📊 Полная статистика:\n\n📦 Всего заказов: ${orders.length}\n⭐ Всего отзывов: ${reviews.length}\n📈 Средний рейтинг: ${avgRating} ${getStars(Math.round(avgRating))}\n\nВ обработке: ${orders.filter(o => o.status === 'В обработке').length}\nОтправлено: ${orders.filter(o => o.status === 'Отправлен').length}\nДоставлено: ${orders.filter(o => o.status === 'Доставлен').length}
   );
 });
 
 bot.command('delete_order', (ctx) => {
   if (ctx.from.id !== ADMIN_ID) return ctx.reply('⛔ У вас нет прав.');
-    const args = ctx.message.text.split(' ');
+  const args = ctx.message.text.split(' ');
   if (args.length < 2) return ctx.reply('⚠️ Укажите номер заказа: /delete_order 123');
-
   const orderId = parseInt(args[1]);
   if (isNaN(orderId)) return ctx.reply('⚠️ Номер должен быть числом.');
-
   let orders = getOrders();
   const index = orders.findIndex(o => o.id === orderId);
   if (index === -1) return ctx.reply(❌ Заказ #${orderId} не найден.);
-
   orders.splice(index, 1);
   saveOrders(orders);
   ctx.reply(✅ Заказ #${orderId} удалён.);
@@ -446,61 +391,47 @@ bot.command('delete_order', (ctx) => {
 
 bot.command('delete_review', (ctx) => {
   if (ctx.from.id !== ADMIN_ID) return ctx.reply('⛔ У вас нет прав.');
-
   const args = ctx.message.text.split(' ');
   if (args.length < 2) return ctx.reply('⚠️ Укажите номер отзыва: /delete_review 123');
-
   const reviewId = parseInt(args[1]);
   if (isNaN(reviewId)) return ctx.reply('⚠️ Номер должен быть числом.');
-
   let reviews = getReviews();
   const index = reviews.findIndex(r => r.id === reviewId);
   if (index === -1) return ctx.reply(❌ Отзыв #${reviewId} не найден.);
-
   reviews.splice(index, 1);
   saveReviews(reviews);
   ctx.reply(✅ Отзыв #${reviewId} удалён.);
 });
 
-// ---------- УПРАВЛЕНИЕ СТАТУСАМИ ----------
 bot.command('set_status', (ctx) => {
   if (ctx.from.id !== ADMIN_ID) return ctx.reply('⛔ У вас нет прав.');
-
   const args = ctx.message.text.split(' ');
   if (args.length < 3) {
     return ctx.reply(
       ⚠️ Используйте:\n/set_status "ключ_товара" "новый_статус"\n\nПример:\n/set_status "резисторы 150" "🚚 Под заказ (14–30 дней)"
     );
   }
-
   const key = args.slice(1, -1).join(' ').toLowerCase();
   const newStatus = args.slice(-1).join(' ');
-
   if (!products[key]) {
     return ctx.reply(❌ Товар с ключом "${key}" не найден. Список ключей:\n${Object.keys(products).join(', ')});
   }
-
   const statuses = loadStatuses();
   statuses[key] = newStatus;
   saveStatuses(statuses);
-
   ctx.reply(✅ Статус товара "${products[key].name}" изменён на:\n${newStatus});
 });
 
 bot.command('reset_status', (ctx) => {
   if (ctx.from.id !== ADMIN_ID) return ctx.reply('⛔ У вас нет прав.');
-
   const args = ctx.message.text.split(' ');
   if (args.length < 2) {
     return ctx.reply('⚠️ Используйте: /reset_status "ключ_товара"');
   }
-
   const key = args.slice(1).join(' ').toLowerCase();
-
   if (!products[key]) {
     return ctx.reply(❌ Товар с ключом "${key}" не найден.);
   }
-
   const statuses = loadStatuses();
   if (statuses[key]) {
     delete statuses[key];
@@ -511,48 +442,32 @@ bot.command('reset_status', (ctx) => {
   }
 });
 
-// ======================== ПОИСК ТОВАРОВ ========================
-
+// -------------------- ПОИСК ТОВАРОВ --------------------
 bot.on('text', (ctx) => {
   const query = ctx.message.text.toLowerCase().trim();
-
   if (query.startsWith('/')) return;
   if (['каталог', 'корзина', 'помощь', 'статус', 'оставить отзыв'].includes(query)) return;
 
   const statuses = loadStatuses();
   let found = false;
-
-  for (const [key, value] of Object.entries(products)) {
+  for (const [key, product] of Object.entries(products)) {
     if (query.includes(key)) {
-      const finalStatus = statuses[key] || value.status;
-      ctx.replyWithPhoto(value.photo, {
-        caption: 📦 ${value.name}\n💰 Цена: ${value.price}\n${finalStatus}\n\nДля заказа напишите "Корзина" или свяжитесь с @RadioPartsBY_bot
+      const finalStatus = statuses[key] || product.status;
+      ctx.replyWithPhoto(product.photo, {
+        caption: 📦 ${product.name}\n💰 Цена: ${product.price}\n${finalStatus}\n\nДля заказа напишите "Корзина" или свяжитесь с @RadioPartsBY_bot
       });
       found = true;
       break;
     }
   }
-
   if (!found) {
     ctx.reply(
-      🤷 Не нашел такой товар.
-
-Попробуйте написать:
-• ESP32 DevKit — 19 BYN ✅
-• Arduino Nano — 14 BYN ✅
-• OLED 0.96" — 9 BYN ✅
-• Резисторы 150 — 10 BYN 🚚
-• NE555 — 3 BYN 🚚
-• 7805 — 3 BYN 🚚
-• Реле 1 — 4 BYN 🚚
-
-Или нажмите "🛒 Каталог" для полного списка.
+      🤷 Не нашел такой товар.\n\nПопробуйте написать:\n• ESP32 DevKit — 19 BYN ✅\n• Arduino Nano — 14 BYN ✅\n• OLED 0.96" — 9 BYN ✅\n• Резисторы 150 — 10 BYN 🚚\n• NE555 — 3 BYN 🚚\n• 7805 — 3 BYN 🚚\n• Реле 1 — 4 BYN 🚚\n\nИли нажмите "🛒 Каталог" для полного списка.
     );
   }
 });
 
-// ======================== ЗАПУСК ========================
-
+// -------------------- ЗАПУСК --------------------
 bot.launch()
   .then(() => console.log('✅ Бот запущен!'))
   .catch(err => console.error('❌ Ошибка запуска бота:', err.message));
