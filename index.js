@@ -177,7 +177,7 @@ app.get('/', (req, res) => {
   res.send('✅ RadioPartsBY Bot is running!');
 });
 app.listen(PORT, () => {
-  console.log('✅ HTTP server running on port ${PORT}');
+ console.log("✅ HTTP server running on port " + PORT);
 });
 
 // ======================== ФУНКЦИЯ ДЛЯ ЗВЁЗД ========================
