@@ -300,7 +300,7 @@ bot.on('text', (ctx) => {
     const review = addReview({
       text: text,
       rating: rating,
-      author: ctx.from.username  ctx.from.first_name  'Аноним'
+      author: ctx.from.username || ctx.from.first_name || 'Аноним'
     });
 
     ctx.session.rating = null;
