@@ -187,7 +187,7 @@ bot.use(session());
 const app = express();
 app.get('/', (req, res) => res.send('✅ RadioPartsBY Bot is running!'));
 app.listen(PORT, () => {
-  console.log(✅ HTTP server running on port ${PORT});
+  console.log('✅ HTTP server running on port ' + PORT);
 });
 
 function getStars(rating) {
