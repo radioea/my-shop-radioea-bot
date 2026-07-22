@@ -306,7 +306,7 @@ bot.on('text', (ctx) => {
     ctx.session.rating = null;
 
     ctx.reply(
-      ✅ Спасибо за отзыв!\n\n⭐ Оценка: ${getStars(rating)}\n📝 Текст: ${text}\n\nВаш отзыв #${review.id} сохранён.
+      `✅ Спасибо за отзыв!\n\n⭐ Оценка: ${getStars(rating)}\n📝 Текст: ${text}\n\nВаш отзыв #${review.id} сохранён.`
     );
   }
 });
