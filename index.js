@@ -4,23 +4,19 @@ const express = require('express');
 const fs = require('fs');
 const path = require('path');
 
-// ==================== НАСТРОЙКИ ====================
 const BOT_TOKEN = process.env.BOT_TOKEN || '8916472134:AAGEakb5G9SzUZ2vfqGVKh2RZMTNLw97tjA';
 const ADMIN_ID = parseInt(process.env.ADMIN_ID) || 5179932939;
 const PORT = process.env.PORT || 3000;
 
-// ==================== РАБОТА С БАЗОЙ ====================
 const DATA_DIR = path.join(__dirname, 'data');
 const ORDERS_FILE = path.join(DATA_DIR, 'orders.json');
 const REVIEWS_FILE = path.join(DATA_DIR, 'reviews.json');
 const STATUS_FILE = path.join(DATA_DIR, 'status.json');
 
-// Создаём папку data, если её нет
 if (!fs.existsSync(DATA_DIR)) {
   fs.mkdirSync(DATA_DIR);
 }
 
-// Инициализация файлов с правильным содержимым
 function initDB() {
   if (!fs.existsSync(ORDERS_FILE)) {
     fs.writeFileSync(ORDERS_FILE, JSON.stringify([]));
@@ -40,12 +36,9 @@ function getOrders() {
 function getReviews() {
   try { return JSON.parse(fs.readFileSync(REVIEWS_FILE, 'utf8')); } catch { return []; }
 }
-function saveOrders(orders) {
-  fs.writeFileSync(ORDERS_FILE, JSON.stringify(orders, null, 2));
-}
-function saveReviews(reviews) {
-  fs.writeFileSync(REVIEWS_FILE, JSON.stringify(reviews, null, 2));
-}
+function saveOrders(orders) { fs.writeFileSync(ORDERS_FILE, JSON.stringify(orders, null, 2)); }
+function saveReviews(reviews) { fs.writeFileSync(REVIEWS_FILE, JSON.stringify(reviews, null, 2)); }
+
 function loadStatuses() {
   try { return JSON.parse(fs.readFileSync(STATUS_FILE, 'utf8')); } catch { return {}; }
 }
@@ -65,7 +58,6 @@ function addReview(review) {
   return newReview;
 }
 
-// ==================== ТОВАРЫ (полный ассортимент) ====================
 const products = {
   'esp32 devkit': { name: 'ESP32 DevKit V1 (30 pin, Type-C)', price: '19 BYN', status: '✅ В наличии', photo: 'https://example.com/esp32.jpg' },
   'esp8266': { name: 'ESP8266 NodeMCU (Wi-Fi)', price: '15 BYN', status: '🚚 Под заказ (14–30 дней)', photo: 'https://example.com/esp8266.jpg' },
@@ -180,12 +172,13 @@ const products = {
   'пин гребёнки': { name: 'Пин-гребёнки (40 pin)', price: '3 BYN', status: '🚚 Под заказ (14–30 дней)', photo: 'https://example.com/pin_headers.jpg' }
 };
 
-// ==================== БОТ И СЕРВЕР ====================
 const bot = new Telegraf(BOT_TOKEN);
 bot.use(session());
 
 const app = express();
-app.get('/', (req, res) => res.send('✅ RadioPartsBY Bot is running!'));
+app.get('/', (req, res) => {
+  res.send('✅ RadioPartsBY Bot is running!');
+});
 app.listen(PORT, () => {
   console.log('✅ HTTP server running on port ' + PORT);
 });
@@ -194,28 +187,23 @@ function getStars(rating) {
   return '⭐'.repeat(rating) + '☆'.repeat(5 - rating);
 }
 
-// -------------------- СТАРТ --------------------
 bot.start((ctx) => {
   const keyboard = Markup.keyboard([
     ['🛒 Каталог', '📦 Корзина', '📦 Статус'],
     ['📞 Помощь', '⭐ Оставить отзыв']
   ]).resize();
   ctx.reply(
-    👋 Добро пожаловать в RadioPartsBY!
-
-✅ В наличии:
-• ESP32 DevKit — 19 BYN
-• Arduino Nano — 14 BYN
-• OLED 0.96" — 9 BYN
-
-🚚 Остальные товары — под заказ (14–30 дней).
-
-Напишите название товара или нажмите "🛒 Каталог".,
+    '👋 Добро пожаловать в RadioPartsBY!\n\n' +
+    '✅ В наличии:\n' +
+    '• ESP32 DevKit — 19 BYN\n' +
+    '• Arduino Nano — 14 BYN\n' +
+    '• OLED 0.96" — 9 BYN\n\n' +
+    '🚚 Остальные товары — под заказ (14–30 дней).\n\n' +
+    'Напишите название товара или нажмите "🛒 Каталог".',
     keyboard
   );
 });
 
-// -------------------- КАТАЛОГ (динамический) --------------------
 bot.hears('🛒 Каталог', (ctx) => {
   const statuses = loadStatuses();
   const categories = {
@@ -236,9 +224,9 @@ bot.hears('🛒 Каталог', (ctx) => {
   };
 
   let reply = '📦 ПОЛНЫЙ КАТАЛОГ RadioPartsBY:\n\n';
-  for (const [category, keys] of Object.entries(categories)) {
-    reply += ${category}:\n;
-    for (const key of keys) {
+  for (const category in categories) {
+    reply += category + ':\n';
+    for (const key of categories[category]) {
       const product = products[key];
       if (product) {
         const finalStatus = statuses[key] || product.status;
@@ -247,7 +235,7 @@ bot.hears('🛒 Каталог', (ctx) => {
         else if (finalStatus.includes('Под заказ')) icon = '🚚';
         else if (finalStatus.includes('Закончился') || finalStatus.includes('Нет')) icon = '❌';
         else icon = '📌';
-        reply +=   ${product.name} — ${product.price} ${icon}\n;
+        reply += '  ' + product.name + ' — ' + product.price + ' ' + icon + '\n';
       }
     }
     reply += '\n';
@@ -256,13 +244,19 @@ bot.hears('🛒 Каталог', (ctx) => {
   ctx.reply(reply);
 });
 
-// -------------------- ДРУГИЕ КНОПКИ --------------------
-bot.hears('📦 Корзина', (ctx) => ctx.reply('🛒 Ваша корзина пока пуста. Добавьте товары через поиск.'));
-bot.hears('📞 Помощь', (ctx) => ctx.reply(
-  📞 Контакты:\n• Telegram: @RadioPartsBY_bot\n• Заказ: t.me/RadioPartsBY_bot\n• Время работы: Пн-Пт 9:00–18:00
-));
+bot.hears('📦 Корзина', (ctx) => {
+  ctx.reply('🛒 Ваша корзина пока пуста. Добавьте товары через поиск.');
+});
 
-// -------------------- ОТЗЫВЫ --------------------
+bot.hears('📞 Помощь', (ctx) => {
+  ctx.reply(
+    '📞 Контакты:\n' +
+    '• Telegram: @RadioPartsBY_bot\n' +
+    '• Заказ: t.me/RadioPartsBY_bot\n' +
+    '• Время работы: Пн-Пт 9:00–18:00'
+  );
+});
+
 bot.hears('⭐ Оставить отзыв', (ctx) => {
   const keyboard = Markup.inlineKeyboard([
     [Markup.button.callback('⭐ 1', 'rating_1'), Markup.button.callback('⭐⭐ 2', 'rating_2'), Markup.button.callback('⭐⭐⭐ 3', 'rating_3')],
@@ -273,9 +267,9 @@ bot.hears('⭐ Оставить отзыв', (ctx) => {
 
 bot.action(/rating_([1-5])/, (ctx) => {
   const rating = parseInt(ctx.match[1]);
-  ctx.answerCbQuery(Вы выбрали ${rating} звёзд);
+  ctx.answerCbQuery('Вы выбрали ' + rating + ' звёзд');
   ctx.session.rating = rating;
-  ctx.reply(Вы выбрали ${getStars(rating)}\n\nТеперь напишите текст отзыва:);
+  ctx.reply('Вы выбрали ' + getStars(rating) + '\n\nТеперь напишите текст отзыва:');
 });
 
 bot.on('text', (ctx) => {
@@ -289,30 +283,34 @@ bot.on('text', (ctx) => {
     });
     ctx.session.rating = null;
     ctx.reply(
-      ✅ Спасибо за отзыв!\n\n⭐ Оценка: ${getStars(rating)}\n📝 Текст: ${text}\n\nВаш отзыв #${review.id} сохранён.
+      '✅ Спасибо за отзыв!\n\n' +
+      '⭐ Оценка: ' + getStars(rating) + '\n' +
+      '📝 Текст: ' + text + '\n\n' +
+      'Ваш отзыв #' + review.id + ' сохранён.'
     );
   }
 });
 
-// -------------------- СТАТУС --------------------
 bot.hears('📦 Статус', (ctx) => {
   const orders = getOrders();
   const reviews = getReviews();
   const userId = ctx.from.id;
   let avgRating = 0;
-  if (reviews.length > 0) {
-    const sum = reviews.reduce((acc, r) => acc + (r.rating || 0), 0);
+  if (reviews.length > 0) {const sum = reviews.reduce((acc, r) => acc + (r.rating || 0), 0);
     avgRating = (sum / reviews.length).toFixed(1);
   }
   const buttons = [
-    Markup.button.callback(📋 Заказы (${orders.length}), 'view_orders'),
-    Markup.button.callback(⭐ Отзывы (${reviews.length}), 'view_reviews')
+    Markup.button.callback('📋 Заказы (' + orders.length + ')', 'view_orders'),
+    Markup.button.callback('⭐ Отзывы (' + reviews.length + ')', 'view_reviews')
   ];
   if (userId === ADMIN_ID) {
     buttons.push(Markup.button.callback('⚙️ Админ-панель', 'admin_panel'));
   }
   ctx.reply(
-    📊 Статистика:\n\n📦 Всего заказов: ${orders.length}\n⭐ Всего отзывов: ${reviews.length}\n📈 Средний рейтинг: ${avgRating} ${getStars(Math.round(avgRating))},
+    '📊 Статистика:\n\n' +
+    '📦 Всего заказов: ' + orders.length + '\n' +
+    '⭐ Всего отзывов: ' + reviews.length + '\n' +
+    '📈 Средний рейтинг: ' + avgRating + ' ' + getStars(Math.round(avgRating)),
     Markup.inlineKeyboard([buttons])
   );
 });
@@ -322,9 +320,9 @@ bot.action('view_orders', (ctx) => {
   if (orders.length === 0) return ctx.reply('📭 Заказов пока нет.');
   let text = '📋 Список заказов:\n\n';
   orders.slice(-5).forEach((order) => {
-    text += #${order.id} — ${order.items || 'Товары'} — ${order.status}\n;
+    text += '#' + order.id + ' — ' + (order.items || 'Товары') + ' — ' + order.status + '\n';
   });
-  text += \nВсего: ${orders.length} заказов;
+  text += 'Всего: ' + orders.length + ' заказов';
   ctx.reply(text);
 });
 
@@ -333,9 +331,10 @@ bot.action('view_reviews', (ctx) => {
   if (reviews.length === 0) return ctx.reply('📭 Отзывов пока нет.');
   let text = '⭐ Все отзывы:\n\n';
   reviews.slice(-10).reverse().forEach((review) => {
-    text += #${review.id} — ${getStars(review.rating || 0)} — ${review.text}\n👤 ${review.author}\n\n;
+    text += '#' + review.id + ' — ' + getStars(review.rating || 0) + ' — ' + review.text + '\n';
+    text += '👤 ' + review.author + '\n\n';
   });
-  text += \nВсего: ${reviews.length} отзывов;
+  text += 'Всего: ' + reviews.length + ' отзывов';
   ctx.reply(text);
 });
 
@@ -343,11 +342,16 @@ bot.action('admin_panel', (ctx) => {
   if (ctx.from.id !== ADMIN_ID) return ctx.answerCbQuery('⛔ Доступ запрещён!');
   ctx.answerCbQuery();
   ctx.reply(
-    ⚙️ Админ-панель:\n/export — выгрузить заказы в файл\n/status — статистика по заказам\n/delete_order — удалить заказ по номеру\n/delete_review — удалить отзыв по номеру\n/set_status — установить статус товара\n/reset_status — сбросить статус товара
+    '⚙️ Админ-панель:\n' +
+    '/export — выгрузить заказы в файл\n' +
+    '/status — статистика по заказам\n' +
+    '/delete_order — удалить заказ по номеру\n' +
+    '/delete_review — удалить отзыв по номеру\n' +
+    '/set_status — установить статус товара\n' +
+    '/reset_status — сбросить статус товара'
   );
 });
 
-// -------------------- АДМИН-КОМАНДЫ --------------------
 bot.command('export', (ctx) => {
   if (ctx.from.id !== ADMIN_ID) return ctx.reply('⛔ У вас нет прав.');
   const orders = getOrders();
@@ -355,8 +359,8 @@ bot.command('export', (ctx) => {
   const filePath = path.join(DATA_DIR, 'export_orders.json');
   fs.writeFileSync(filePath, JSON.stringify(orders, null, 2));
   ctx.replyWithDocument(
-    { source: filePath, filename: orders_${new Date().toISOString().slice(0, 10)}.json },
-    { caption: 📦 Экспорт заказов (${orders.length} шт.) }
+    { source: filePath, filename: 'orders_' + new Date().toISOString().slice(0, 10) + '.json' },
+    { caption: '📦 Экспорт заказов (' + orders.length + ' шт.)' }
   );
   fs.unlinkSync(filePath);
 });
@@ -371,7 +375,13 @@ bot.command('status', (ctx) => {
     avgRating = (sum / reviews.length).toFixed(1);
   }
   ctx.reply(
-    📊 Полная статистика:\n\n📦 Всего заказов: ${orders.length}\n⭐ Всего отзывов: ${reviews.length}\n📈 Средний рейтинг: ${avgRating} ${getStars(Math.round(avgRating))}\n\nВ обработке: ${orders.filter(o => o.status === 'В обработке').length}\nОтправлено: ${orders.filter(o => o.status === 'Отправлен').length}\nДоставлено: ${orders.filter(o => o.status === 'Доставлен').length}
+    '📊 Полная статистика:\n\n' +
+    '📦 Всего заказов: ' + orders.length + '\n' +
+    '⭐ Всего отзывов: ' + reviews.length + '\n' +
+    '📈 Средний рейтинг: ' + avgRating + ' ' + getStars(Math.round(avgRating)) + '\n\n' +
+    'В обработке: ' + orders.filter(o => o.status === 'В обработке').length + '\n' +
+    'Отправлено: ' + orders.filter(o => o.status === 'Отправлен').length + '\n' +
+    'Доставлено: ' + orders.filter(o => o.status === 'Доставлен').length
   );
 });
 
@@ -383,10 +393,10 @@ bot.command('delete_order', (ctx) => {
   if (isNaN(orderId)) return ctx.reply('⚠️ Номер должен быть числом.');
   let orders = getOrders();
   const index = orders.findIndex(o => o.id === orderId);
-  if (index === -1) return ctx.reply(❌ Заказ #${orderId} не найден.);
+  if (index === -1) return ctx.reply('❌ Заказ #' + orderId + ' не найден.');
   orders.splice(index, 1);
   saveOrders(orders);
-  ctx.reply(✅ Заказ #${orderId} удалён.);
+  ctx.reply('✅ Заказ #' + orderId + ' удалён.');
 });
 
 bot.command('delete_review', (ctx) => {
@@ -397,10 +407,10 @@ bot.command('delete_review', (ctx) => {
   if (isNaN(reviewId)) return ctx.reply('⚠️ Номер должен быть числом.');
   let reviews = getReviews();
   const index = reviews.findIndex(r => r.id === reviewId);
-  if (index === -1) return ctx.reply(❌ Отзыв #${reviewId} не найден.);
+  if (index === -1) return ctx.reply('❌ Отзыв #' + reviewId + ' не найден.');
   reviews.splice(index, 1);
   saveReviews(reviews);
-  ctx.reply(✅ Отзыв #${reviewId} удалён.);
+  ctx.reply('✅ Отзыв #' + reviewId + ' удалён.');
 });
 
 bot.command('set_status', (ctx) => {
@@ -408,18 +418,19 @@ bot.command('set_status', (ctx) => {
   const args = ctx.message.text.split(' ');
   if (args.length < 3) {
     return ctx.reply(
-      ⚠️ Используйте:\n/set_status "ключ_товара" "новый_статус"\n\nПример:\n/set_status "резисторы 150" "🚚 Под заказ (14–30 дней)"
+      '⚠️ Используйте:\n/set_status "ключ_товара" "новый_статус"\n\n' +
+      'Пример:\n/set_status "резисторы 150" "🚚 Под заказ (14–30 дней)"'
     );
   }
   const key = args.slice(1, -1).join(' ').toLowerCase();
   const newStatus = args.slice(-1).join(' ');
   if (!products[key]) {
-    return ctx.reply(❌ Товар с ключом "${key}" не найден. Список ключей:\n${Object.keys(products).join(', ')});
+    return ctx.reply('❌ Товар с ключом "' + key + '" не найден. Список ключей:\n' + Object.keys(products).join(', '));
   }
   const statuses = loadStatuses();
   statuses[key] = newStatus;
   saveStatuses(statuses);
-  ctx.reply(✅ Статус товара "${products[key].name}" изменён на:\n${newStatus});
+  ctx.reply('✅ Статус товара "' + products[key].name + '" изменён на:\n' + newStatus);
 });
 
 bot.command('reset_status', (ctx) => {
@@ -430,19 +441,18 @@ bot.command('reset_status', (ctx) => {
   }
   const key = args.slice(1).join(' ').toLowerCase();
   if (!products[key]) {
-    return ctx.reply(❌ Товар с ключом "${key}" не найден.);
+    return ctx.reply('❌ Товар с ключом "' + key + '" не найден.');
   }
   const statuses = loadStatuses();
   if (statuses[key]) {
     delete statuses[key];
     saveStatuses(statuses);
-    ctx.reply(✅ Статус товара "${products[key].name}" сброшен до значения из кода.);
+    ctx.reply('✅ Статус товара "' + products[key].name + '" сброшен до значения из кода.');
   } else {
-    ctx.reply(ℹ️ У товара "${products[key].name}" не было переопределённого статуса.);
+    ctx.reply('ℹ️ У товара "' + products[key].name + '" не было переопределённого статуса.');
   }
 });
 
-// -------------------- ПОИСК ТОВАРОВ --------------------
 bot.on('text', (ctx) => {
   const query = ctx.message.text.toLowerCase().trim();
   if (query.startsWith('/')) return;
@@ -454,7 +464,10 @@ bot.on('text', (ctx) => {
     if (query.includes(key)) {
       const finalStatus = statuses[key] || product.status;
       ctx.replyWithPhoto(product.photo, {
-        caption: 📦 ${product.name}\n💰 Цена: ${product.price}\n${finalStatus}\n\nДля заказа напишите "Корзина" или свяжитесь с @RadioPartsBY_bot
+        caption: '📦 ' + product.name + '\n' +
+                 '💰 Цена: ' + product.price + '\n' +
+                 finalStatus + '\n\n' +
+                 'Для заказа напишите "Корзина" или свяжитесь с @RadioPartsBY_bot'
       });
       found = true;
       break;
@@ -462,12 +475,20 @@ bot.on('text', (ctx) => {
   }
   if (!found) {
     ctx.reply(
-      🤷 Не нашел такой товар.\n\nПопробуйте написать:\n• ESP32 DevKit — 19 BYN ✅\n• Arduino Nano — 14 BYN ✅\n• OLED 0.96" — 9 BYN ✅\n• Резисторы 150 — 10 BYN 🚚\n• NE555 — 3 BYN 🚚\n• 7805 — 3 BYN 🚚\n• Реле 1 — 4 BYN 🚚\n\nИли нажмите "🛒 Каталог" для полного списка.
+      '🤷 Не нашел такой товар.\n\n' +
+      'Попробуйте написать:\n' +
+      '• ESP32 DevKit — 19 BYN ✅\n' +
+      '• Arduino Nano — 14 BYN ✅\n' +
+      '• OLED 0.96" — 9 BYN ✅\n' +
+      '• Резисторы 150 — 10 BYN 🚚\n' +
+      '• NE555 — 3 BYN 🚚\n' +
+      '• 7805 — 3 BYN 🚚\n' +
+      '• Реле 1 — 4 BYN 🚚\n\n' +
+      'Или нажмите "🛒 Каталог" для полного списка.'
     );
   }
 });
 
-// -------------------- ЗАПУСК --------------------
 bot.launch()
   .then(() => console.log('✅ Бот запущен!'))
   .catch(err => console.error('❌ Ошибка запуска бота:', err.message));
