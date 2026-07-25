@@ -8,6 +8,9 @@ const BOT_TOKEN = process.env.BOT_TOKEN || '8916472134:AAGEakb5G9SzUZ2vfqGVKh2RZ
 const ADMIN_ID = parseInt(process.env.ADMIN_ID) || 5179932939;
 const PORT = process.env.PORT || 3000;
 
+const bot = new Telegraf(BOT_TOKEN);
+bot.use(session());
+
 const DATA_DIR = path.join(__dirname, 'data');
 const ORDERS_FILE = path.join(DATA_DIR, 'orders.json');
 const REVIEWS_FILE = path.join(DATA_DIR, 'reviews.json');
