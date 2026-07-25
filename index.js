@@ -371,7 +371,7 @@ bot.hears('🛒 Каталог', (ctx) => {
     '📈 Средний рейтинг: ' + avgRating + ' ' + getStars(Math.round(avgRating)),
     Markup.inlineKeyboard([buttons])
   );
-});
+
 
 bot.action('view_orders', (ctx) => {
   const orders = getOrders();
