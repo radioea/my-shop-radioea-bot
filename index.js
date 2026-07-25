@@ -233,25 +233,6 @@ bot.hears('📦 Статус', (ctx) => {
   );
 });
 
-  let reply = '📦 ПОЛНЫЙ КАТАЛОГ RadioPartsBY:\n\n';
-  for (const category in categories) {
-    reply += category + ':\n';
-    for (const key of categories[category]) {
-      const product = products[key];
-      if (product) {
-        const finalStatus = statuses[key] || product.status;
-        let icon = '❓';
-        if (finalStatus.includes('В наличии')) icon = '✅';
-        else if (finalStatus.includes('Под заказ')) icon = '🚚';
-        else if (finalStatus.includes('Закончился') || finalStatus.includes('Нет')) icon = '❌';
-        else icon = '📌';
-        reply += '  ' + product.name + ' — ' + product.price + ' ' + icon + '\n';
-      }
-    }
-    reply += '\n';
-  }
-  reply += 'Напишите название товара для фото и подробностей.';
-  ctx.reply(reply);
 
 
 bot.hears('📦 Корзина', (ctx) => {
@@ -319,6 +300,49 @@ bot.hears('🛒 Каталог', (ctx) => {
     '🔹 МОТОРЫ И СЕРВО': ['sg90','mg90s','mg995','ds3218','моторчик 3v','моторчик 6v','моторчик 12v','n20','28byj-48','nema17'],
     '🔹 РАЗЪЁМЫ И ПРОВОДА': ['dupont мм','dupont пп','dupont пм','клеммники','разъёмы','макетная плата','пин гребёнки']
   };
+
+  // Функция для отправки длинных сообщений по частям
+  function sendLongMessage(ctx, text) {
+    const MAX_LENGTH = 4000;
+    if (text.length <= MAX_LENGTH) {
+      ctx.reply(text);
+    } else {
+      let start = 0;
+      while (start < text.length) {
+        let end = Math.min(start + MAX_LENGTH, text.length);
+        if (end < text.length) {
+          const lastNewline = text.lastIndexOf('\n', end);
+          if (lastNewline > start) {
+            end = lastNewline + 1;
+          }
+        }
+        ctx.reply(text.slice(start, end));
+        start = end;
+      }
+    }
+  }
+
+  let fullReply = '📦 ПОЛНЫЙ КАТАЛОГ RadioPartsBY:\n\n';
+  for (const category in categories) {
+    fullReply += category + ':\n';
+    for (const key of categories[category]) {
+      const product = products[key];
+      if (product) {
+        const finalStatus = statuses[key] || product.status;
+        let icon = '❓';
+        if (finalStatus.includes('В наличии')) icon = '✅';
+        else if (finalStatus.includes('Под заказ')) icon = '🚚';
+        else if (finalStatus.includes('Закончился') || finalStatus.includes('Нет')) icon = '❌';
+        else icon = '📌';
+        fullReply += '  ' + product.name + ' — ' + product.price + ' ' + icon + '\n';
+      }
+    }
+    fullReply += '\n';
+  }
+  fullReply += 'Напишите название товара для фото и подробностей.';
+
+  sendLongMessage(ctx, fullReply);
+});
 
   // Функция для отправки длинных сообщений по частям
   function sendLongMessage(ctx, text) {
