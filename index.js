@@ -175,8 +175,6 @@ const products = {
   'пин гребёнки': { name: 'Пин-гребёнки (40 pin)', price: '3 BYN', status: '🚚 Под заказ (14–30 дней)', photo: 'https://example.com/pin_headers.jpg' }
 };
 
-const bot = new Telegraf(BOT_TOKEN);
-bot.use(session());
 
 const app = express();
 app.get('/', (req, res) => {
