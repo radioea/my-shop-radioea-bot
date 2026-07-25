@@ -275,7 +275,7 @@ bot.action(/rating_([1-5])/, (ctx) => {
 
 bot.on('text', (ctx) => {
   const text = ctx.message.text.trim();
-  if (ctx.session.rating && !text.startsWith('/') && !text.startsWith('отзыв:')) {
+ if (ctx.session && ctx.session.rating && !text.startsWith('/') && !text.startsWith('отзыв:')) {
     const rating = ctx.session.rating;
     const review = addReview({
       text: text,
@@ -292,14 +292,71 @@ bot.on('text', (ctx) => {
   }
 });
 
-bot.hears('📦 Статус', (ctx) => {
-  const orders = getOrders();
-  const reviews = getReviews();
-  const userId = ctx.from.id;
-  let avgRating = 0;
-  if (reviews.length > 0) {const sum = reviews.reduce((acc, r) => acc + (r.rating || 0), 0);
-    avgRating = (sum / reviews.length).toFixed(1);
+bot.hears('🛒 Каталог', (ctx) => {
+  const statuses = loadStatuses();
+  const categories = {
+    '🔹 МИКРОКОНТРОЛЛЕРЫ': ['esp32 devkit','esp8266','arduino nano','arduino uno','arduino mega','stm32','raspberry pi pico','esp32-cam','esp32-s3'],
+    '🔹 ДИСПЛЕИ': ['oled 0.96','oled 1.3','lcd 1602','lcd 2004','tft 1.8','tft 2.4','7 segment','max7219'],
+    '🔹 ДАТЧИКИ': ['hc-sr04','dht22','dht11','ds18b20','bme280','mpu6050','hc-05','rfid rc522','max30102','mq-2','ttp223','ky-038','pir hc-sr501','фоторезистор','влажность почвы'],
+    '🔹 ТРАНЗИСТОРЫ (за 10 шт.)': ['bc547','bc557','2n2222','2n3904','2n3906','s8050','s8550','bc337','bc327','a1015','c1815'],
+    '🔹 MOSFET': ['irfz44n','irf540n','irf3205','irlz44n'],
+    '🔹 ДИОДЫ (за 10 шт.)': ['1n4007','1n4148','1n5819','1n5408','fr107'],
+    '🔹 СТАБИЛИТРОНЫ (за 10 шт.)': ['bzx55 3.3','bzx55 5.1','bzx55 12','1n4742a'],
+    '🔹 МИКРОСХЕМЫ (за 1 шт.)': ['ne555','lm358','lm324','lm393','lm741','74hc595','74hc00','74hc04','pc817','moc3021'],
+    '🔹 СТАБИЛИЗАТОРЫ (за 1 шт.)': ['7805','7812','7905','lm317','lm1117','ams1117'],
+    '🔹 РЕЛЕ И ДРАЙВЕРЫ': ['реле 1','реле 2','реле 4','реле 8','l298n','l293d','pca9685','a4988'],
+    '🔹 ПАССИВНЫЕ КОМПОНЕНТЫ': ['резисторы 150','резисторы 300','резисторы выводные','конденсаторы керамика','конденсаторы электролит','конденсаторы пленка'],
+    '🔹 БЛОКИ ПИТАНИЯ': ['5v 2a','12v 2a','12v 5a','12v 10a','24v 5a','lm2596','xl4015','mt3608'],
+    '🔹 МОТОРЫ И СЕРВО': ['sg90','mg90s','mg995','ds3218','моторчик 3v','моторчик 6v','моторчик 12v','n20','28byj-48','nema17'],
+    '🔹 РАЗЪЁМЫ И ПРОВОДА': ['dupont мм','dupont пп','dupont пм','клеммники','разъёмы','макетная плата','пин гребёнки']
+  };
+
+  // Функция для отправки длинных сообщений по частям
+  function sendLongMessage(ctx, text) {
+    const MAX_LENGTH = 4000;
+    if (text.length <= MAX_LENGTH) {
+      ctx.reply(text);
+    } else {
+      let start = 0;
+      while (start < text.length) {
+        let end = Math.min(start + MAX_LENGTH, text.length);
+        // Ищем последний перенос строки в пределах MAX_LENGTH, чтобы не разрывать строки
+        if (end < text.length) {
+          const lastNewline = text.lastIndexOf('\n', end);
+          if (lastNewline > start) {
+            end = lastNewline + 1;
+          }
+        }
+        ctx.reply(text.slice(start, end));
+        start = end;
+      }
+    }
   }
+
+  let fullReply = '📦 ПОЛНЫЙ КАТАЛОГ RadioPartsBY:\n\n';
+  for (const category in categories) {
+    fullReply += category + ':\n';
+    for (const key of categories[category]) {
+      const product = products[key];
+      if (product) {
+        const finalStatus = statuses[key] || product.status;
+        let icon = '❓';
+        if (finalStatus.includes('В наличии')) icon = '✅';
+        else if (finalStatus.includes('Под заказ')) icon = '🚚';
+        else if (finalStatus.includes('Закончился') || finalStatus.includes('Нет')) icon = '❌';
+        else icon = '📌';
+        fullReply += '  ' + product.name + ' — ' + product.price + ' ' + icon + '\n';
+      }
+    }
+    fullReply += '\n';
+  }
+  fullReply += 'Напишите название товара для фото и подробностей.';
+
+  sendLongMessage(ctx, fullReply);
+});
+
+
+
   const buttons = [
     Markup.button.callback('📋 Заказы (' + orders.length + ')', 'view_orders'),
     Markup.button.callback('⭐ Отзывы (' + reviews.length + ')', 'view_reviews')
