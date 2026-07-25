@@ -4,7 +4,7 @@ const express = require('express');
 const fs = require('fs');
 const path = require('path');
 
-const BOT_TOKEN = process.env.BOT_TOKEN || '8916472134:AAGEakb5G9SzUZ2vfqGVKh2RZMTNLw97tjA';
+const BOT_TOKEN = process.env.BOT_TOKEN || '8916472134:AAF0oi0BJeEDkC8pN7weabKMt8pqfhRUmjI';
 const ADMIN_ID = parseInt(process.env.ADMIN_ID) || 5179932939;
 const PORT = process.env.PORT || 3000;
 
