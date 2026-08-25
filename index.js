@@ -425,7 +425,7 @@ bot.hears("📦 Статус", function(ctx) {
   for (var i = 0; i < last.length; i++) {
     var o = last[i];
     text += "#" + o.id + " — " + (o.status || "Новый") + "\n📅 " + new Date(o.date).toLocaleDateString() + "\n💵 " + (o.total || 0) + " BYN\n\n";
-  };
+  }
   ctx.reply(text);
 });
 bot.hears("📞 Помощь", function(ctx) { ctx.reply("📞 ПОМОЩЬ:\n\n🔍 Как найти: напишите название в чат\n📦 Как заказать: добавьте в корзину и оформите\n⏰ Время работы: Пн-Пт 9:00–18:00"); });
@@ -483,7 +483,7 @@ bot.on("text", function(ctx) {
   // 2. Если нет активного заказа, проверяем отзыв
   if (ctx.session && ctx.session.rating && !text.startsWith("/") && !["🛒 Каталог", "📦 Корзина", "📦 Статус", "🔍 Поиск", "📞 Помощь", "⭐ Оставить отзыв"].includes(text)) {
     var rating = ctx.session.rating;
-    var review = addReview({ text: text, rating: rating, author: ctx.from.username  ctx.from.first_name  "Аноним" });
+    var review = addReview({ text: text, rating: rating, author: ctx.from.username || ctx.from.first_name || "Аноним" });
     ctx.session.rating = null;
     ctx.reply("✅ Спасибо за отзыв!\n\n⭐ " + getStars(rating) + "\n📝 " + text);
     return;
