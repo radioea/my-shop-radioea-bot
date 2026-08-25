@@ -328,7 +328,7 @@ bot.hears("📦 Статус", function(ctx) {
   var last = userOrders.slice(-5).reverse();
   for (var i = 0; i < last.length; i++) {
     var o = last[i];
-    text += "#" + o.id + " — " + (o.status  "Новый") + "\n📅 " + new Date(o.date).toLocaleDateString() + "\n💵 " + (o.total  0) + " BYN\n\n";
+    text += "#" + o.id + " — " + (o.status || "Новый") + "\n📅 " + new Date(o.date).toLocaleDateString() + "\n💵 " + (o.total || 0) + " BYN\n\n";
   }
   ctx.reply(text);
 });
