@@ -168,6 +168,7 @@ function search(query) {
   var results = {};
   var scores = {};
 
+  // 1. Поиск по индексу
   for (var wi = 0; wi < words.length; wi++) {
     var word = words[wi];
     if (word.length < 1) continue;
@@ -194,6 +195,7 @@ function search(query) {
     }
   }
 
+  // 2. Поиск по подстроке во всех полях (если результатов нет)
   if (Object.keys(results).length === 0) {
     for (var key in products) {
       if (!products.hasOwnProperty(key)) continue;
@@ -221,6 +223,7 @@ function search(query) {
     }
   }
 
+  // 3. Если всё равно ничего – fallback (все товары)
   if (Object.keys(results).length === 0) {
     for (var key in products) {
       if (!products.hasOwnProperty(key)) continue;
