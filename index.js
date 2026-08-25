@@ -267,8 +267,21 @@ app.use(express.json());
 // ==================== ВЕБ-ЭНДПОИНТЫ ====================
 app.get("/ping", function(req, res) { res.send("OK"); });
 app.get("/", function(req, res) {
-  var html = "<!DOCTYPE html><html><head><title>RadioPartsBY Bot</title><style>body{font-family:Arial;text-align:center;padding:50px;background:#f5f5f5;}.container{max-width:600px;margin:0 auto;background:#fff;padding:30px;border-radius:10px;box-shadow:0 2px 10px rgba(0,0,0,0.1);}h1{color:#333;}.status{color:#00b894;font-weight:bold;}.info{color:#666;margin:20px 0;}</style></head><body><div class=container><h1>📦 RadioPartsBY</h1><p class=status>✅ Бот
-    работает!</p><p class=info>Telegram бот для магазина радиодеталей</p><p style=margin-top:20px;color:#999;font-size:14px;>Товаров в каталоге: " + Object.keys(products).length + "</p></div></body></html>";
+  var html = 
+    '<!DOCTYPE html>' +
+    '<html><head><title>RadioPartsBY Bot</title>' +
+    '<style>' +
+    'body{font-family:Arial;text-align:center;padding:50px;background:#f5f5f5;}' +
+    '.container{max-width:600px;margin:0 auto;background:#fff;padding:30px;border-radius:10px;box-shadow:0 2px 10px rgba(0,0,0,0.1);}' +
+    'h1{color:#333;}' +
+    '.status{color:#00b894;font-weight:bold;}' +
+    '.info{color:#666;margin:20px 0;}' +
+    '</style></head><body>' +
+    '<div class=container><h1>📦 RadioPartsBY</h1>' +
+    '<p class=status>✅ Бот работает!</p>' +
+    '<p class=info>Telegram бот для магазина радиодеталей</p>' +
+    '<p style="margin-top:20px;color:#999;font-size:14px;">Товаров в каталоге: ' + Object.keys(products).length + '</p>' +
+    '</div></body></html>';
   res.send(html);
 });
 
