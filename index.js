@@ -151,7 +151,7 @@ function search(query) {
   }
   // ★★★ ГЛАВНОЕ ИСПРАВЛЕНИЕ ★★★
   var sorted = Object.keys(results).sort(function(a, b) {
-    return (scores[b]  0) - (scores[a]  0);
+    return (scores[b] || 0) - (scores[a] || 0);
   });
   return sorted.map(function(key) {
     return { key: key, product: results[key], score: scores[key] || 0 };
