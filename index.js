@@ -389,7 +389,7 @@ bot.on("text", function(ctx) {
   // 2. Если нет активного заказа, проверяем отзыв
   if (ctx.session && ctx.session.rating && !text.startsWith("/") && !["🛒 Каталог", "📦 Корзина", "📦 Статус", "🔍 Поиск", "📞 Помощь", "⭐ Оставить отзыв"].includes(text)) {
     var rating = ctx.session.rating;
-    var review = addReview({ text: text, rating: rating, author: ctx.from.username  ctx.from.first_name  "Аноним" });
+    var review = addReview({ text: text, rating: rating, author: ctx.from.username || ctx.from.first_name || "Аноним" });
     ctx.session.rating = null;
     ctx.reply("✅ Спасибо за отзыв!\n\n⭐ " + getStars(rating) + "\n📝 " + text);
     return;
