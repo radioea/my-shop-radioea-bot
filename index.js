@@ -100,7 +100,8 @@ function addReview(review) {
 
 // ==================== ТОВАРЫ (расширенный список) ====================
 var products = {
-  "esp32 d"esp8266": { name: "ESP8266 NodeMCU", price: "15 BYN", status: "🚚 Под заказ (14–30 дней)", photo: "https://via.placeholder.com/400x300/764ba2/ffffff?text=ESP8266", keywords: ["esp8266","nodemcu","wifi"], category: "Микроконтроллеры", description: "Популярный Wi-Fi модуль для IoT проектов" },
+  "esp32 devkit": { name: "ESP32 DevKit V1", price: "19 BYN", status: "✅ В наличии", photo: "https://via.placeholder.com/400x300/667eea/ffffff?text=ESP32", keywords: ["esp32","devkit","esp"], category: "Микроконтроллеры", description: "Мощный микроконтроллер с Wi-Fi и Bluetooth" },
+  "esp8266": { name: "ESP8266 NodeMCU", price: "15 BYN", status: "🚚 Под заказ (14–30 дней)", photo: "https://via.placeholder.com/400x300/764ba2/ffffff?text=ESP8266", keywords: ["esp8266","nodemcu","wifi"], category: "Микроконтроллеры", description: "Популярный Wi-Fi модуль для IoT проектов" },
   "arduino nano": { name: "Arduino Nano V3", price: "14 BYN", status: "✅ В наличии", photo: "https://via.placeholder.com/400x300/00b894/ffffff?text=Arduino+Nano", keywords: ["arduino","nano","nano v3"], category: "Микроконтроллеры", description: "Компактная плата Arduino с Type-C" },
   "arduino uno": { name: "Arduino Uno R3", price: "25 BYN", status: "🚚 Под заказ (14–30 дней)", photo: "https://via.placeholder.com/400x300/e17055/ffffff?text=Arduino+Uno", keywords: ["arduino","uno","uno r3"], category: "Микроконтроллеры", description: "Классическая плата Arduino Uno R3" },
   "arduino mega": { name: "Arduino Mega 2560", price: "35 BYN", status: "🚚 Под заказ (14–30 дней)", photo: "https://via.placeholder.com/400x300/fdcb6e/333333?text=Arduino+Mega", keywords: ["arduino","mega","mega 2560"], category: "Микроконтроллеры", description: "Мощная плата с большим количеством пинов" },
@@ -113,8 +114,8 @@ var products = {
   "dht11": { name: "DHT11 температура/влажность", price: "8 BYN", status: "🚚 Под заказ (14–30 дней)", photo: "https://via.placeholder.com/400x300/6c5ce7/ffffff?text=DHT11", keywords: ["dht11","температура","влажность"], category: "Датчики", description: "Бюджетный датчик температуры и влажности" },
   "bc547": { name: "BC547 (NPN) 10 шт.", price: "5 BYN", status: "🚚 Под заказ (14–30 дней)", photo: "https://via.placeholder.com/400x300/e17055/ffffff?text=BC547", keywords: ["bc547","транзистор","npn"], category: "Транзисторы", description: "NPN биполярный транзистор, 10 штук" },
   "bc557": { name: "BC557 (PNP) 10 шт.", price: "5 BYN", status: "🚚 Под заказ (14–30 дней)", photo: "https://via.placeholder.com/400x300/fdcb6e/333333?text=BC557", keywords: ["bc557","транзистор","pnp"], category: "Транзисторы", description: "PNP биполярный транзистор, 10 штук" },
-  "ne555": { name: "NE555 таймер", price: "3 BYN", status: "🚚 Под заказ (14–30 дней)", photo: "https://via.placeholder.com/400x300/fdcb6e/333333?text=NE555", keywords: ["ne555","555","таймер"], category: "Микросхемы", description: "Классический таймер NE555" },evkit": { name: "ESP32 DevKit V1", price: "19 BYN", status: "✅ В наличии", photo: "https://via.placeholder.com/400x300/667eea/ffffff?text=ESP32", keywords: ["esp32","devkit","esp"], category: "Микроконтроллеры", description: "Мощный микроконтроллер с Wi-Fi и Bluetooth" },
-"7805": { name: "7805 +5V стабилизатор", price: "3 BYN", status: "🚚 Под заказ (14–30 дней)", photo: "https://via.placeholder.com/400x300/0984e3/ffffff?text=7805", keywords: ["7805","стабилизатор","5v"], category: "Стабилизаторы", description: "Линейный стабилизатор напряжения +5В" },
+  "ne555": { name: "NE555 таймер", price: "3 BYN", status: "🚚 Под заказ (14–30 дней)", photo: "https://via.placeholder.com/400x300/fdcb6e/333333?text=NE555", keywords: ["ne555","555","таймер"], category: "Микросхемы", description: "Классический таймер NE555" },
+  "7805": { name: "7805 +5V стабилизатор", price: "3 BYN", status: "🚚 Под заказ (14–30 дней)", photo: "https://via.placeholder.com/400x300/0984e3/ffffff?text=7805", keywords: ["7805","стабилизатор","5v"], category: "Стабилизаторы", description: "Линейный стабилизатор напряжения +5В" },
   "реле 1": { name: "Реле 5V 1-канальное", price: "4 BYN", status: "🚚 Под заказ (14–30 дней)", photo: "https://via.placeholder.com/400x300/6c5ce7/ffffff?text=Relay+1", keywords: ["реле","relay","1 канал"], category: "Реле и драйверы", description: "Одноканальное реле на 5В" },
   "реле 2": { name: "Реле 5V 2-канальное", price: "6 BYN", status: "🚚 Под заказ (14–30 дней)", photo: "https://via.placeholder.com/400x300/00b894/ffffff?text=Relay+2", keywords: ["реле","relay","2 канала"], category: "Реле и драйверы", description: "Двухканальное реле на 5В" },
   "реле 4": { name: "Реле 5V 4-канальное", price: "9 BYN", status: "🚚 Под заказ (14–30 дней)", photo: "https://via.placeholder.com/400x300/00cec9/ffffff?text=Relay+4", keywords: ["реле","relay","4 канала"], category: "Реле и драйверы", description: "Четырёхканальное реле на 5В" },
@@ -126,6 +127,7 @@ var products = {
   "dupont пп": { name: "Dupont папа-папа 40 шт.", price: "4 BYN", status: "🚚 Под заказ (14–30 дней)", photo: "https://via.placeholder.com/400x300/6c5ce7/ffffff?text=Dupont+PP", keywords: ["dupont","папа-папа","провода"], category: "Разъёмы и провода", description: "Набор проводов Dupont папа-папа 40 шт." },
   "dupont пм": { name: "Dupont папа-мама 40 шт.", price: "4 BYN", status: "🚚 Под заказ (14–30 дней)", photo: "https://via.placeholder.com/400x300/6c5ce7/ffffff?text=Dupont+PM", keywords: ["dupont","папа-мама","провода"], category: "Разъёмы и провода", description: "Набор проводов Dupont папа-мама 40 шт." }
 };
+
 
 // ==================== ПОИСКОВАЯ СИСТЕМА ====================
 function buildIndex() {
