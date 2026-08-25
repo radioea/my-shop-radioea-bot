@@ -1,5 +1,5 @@
 
-  require('dotenv').config();
+ require('dotenv').config();
 const { Telegraf, Markup, session } = require('telegraf');
 const express = require('express');
 const fs = require('fs');
@@ -18,19 +18,34 @@ if (!BOT_TOKEN) {
   process.exit(1);
 }
 
-// ==================== ДАННЫЕ ====================
+// ==================== ОБРАБОТКА ОШИБОК ====================
+process.on('uncaughtException', function(err) {
+  console.error("❌ Неперехваченная ошибка:", err.message);
+});
+process.on('unhandledRejection', function(reason) {
+  console.error("❌ Необработанный reject:", reason);
+});
+
+// ==================== ИНИЦИАЛИЗАЦИЯ ====================
 const DATA_DIR = path.join(__dirname, "data");
 const ORDERS_FILE = path.join(DATA_DIR, "orders.json");
 const REVIEWS_FILE = path.join(DATA_DIR, "reviews.json");
 const STATUS_FILE = path.join(DATA_DIR, "status.json");
 const CART_FILE = path.join(DATA_DIR, "cart.json");
 
-if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
+if (fs.existsSync(DATA_DIR) && fs.statSync(DATA_DIR).isFile()) {
+  fs.unlinkSync(DATA_DIR);
+}
+if (!fs.existsSync(DATA_DIR)) {
+  fs.mkdirSync(DATA_DIR, { recursive: true });
+}
 
 function initDB() {
   var files = [ORDERS_FILE, REVIEWS_FILE, STATUS_FILE, CART_FILE];
   for (var i = 0; i < files.length; i++) {
-    if (!fs.existsSync(files[i])) fs.writeFileSync(files[i], JSON.stringify([]));
+    if (!fs.existsSync(files[i])) {
+      fs.writeFileSync(files[i], JSON.stringify([]));
+    }
   }
 }
 initDB();
@@ -81,20 +96,34 @@ function addReview(review) {
   return newReview;
 }
 
-// ==================== ТОВАРЫ (12 позиций) ====================
+// ==================== ТОВАРЫ ====================
 var products = {
   "esp32 devkit": { name: "ESP32 DevKit V1", price: "19 BYN", status: "✅ В наличии", photo: "https://via.placeholder.com/400x300/667eea/ffffff?text=ESP32", keywords: ["esp32","devkit","esp"], category: "Микроконтроллеры", description: "Мощный микроконтроллер с Wi-Fi и Bluetooth" },
   "esp8266": { name: "ESP8266 NodeMCU", price: "15 BYN", status: "🚚 Под заказ (14–30 дней)", photo: "https://via.placeholder.com/400x300/764ba2/ffffff?text=ESP8266", keywords: ["esp8266","nodemcu","wifi"], category: "Микроконтроллеры", description: "Популярный Wi-Fi модуль для IoT проектов" },
-  "arduino nano": { name: "Arduino Nano V3", price: "14 BYN", status: "✅ В наличии", photo: "https://via.placeholder.com/400x300/00b894/ffffff?text=Arduino+Nano", keywords: ["arduino","nano"], category: "Микроконтроллеры", description: "Компактная плата Arduino с Type-C" },
-   "arduino uno": { name: "Arduino Uno R3", price: "25 BYN", status: "🚚 Под заказ (14–30 дней)", photo: "https://via.placeholder.com/400x300/e17055/ffffff?text=Arduino+Uno", keywords: ["arduino","uno"], category: "Микроконтроллеры", description: "Классическая плата Arduino Uno R3" },
+  "arduino nano": { name: "Arduino Nano V3", price: "14 BYN", status: "✅ В наличии", photo: "https://via.placeholder.com/400x300/00b894/ffffff?text=Arduino+Nano", keywords: ["arduino","nano","nano v3"], category: "Микроконтроллеры", description: "Компактная плата Arduino с Type-C" },
+  "arduino uno": { name: "Arduino Uno R3", price: "25 BYN", status: "🚚 Под заказ (14–30 дней)", photo: "https://via.placeholder.com/400x300/e17055/ffffff?text=Arduino+Uno", keywords: ["arduino","uno","uno r3"], category: "Микроконтроллеры", description: "Классическая плата Arduino Uno R3" },
+  "arduino mega": { name: "Arduino Mega 2560", price: "35 BYN", status: "🚚 Под заказ (14–30 дней)", photo: "https://via.placeholder.com/400x300/fdcb6e/333333?text=Arduino+Mega", keywords: ["arduino","mega","mega 2560"], category: "Микроконтроллеры", description: "Мощная плата с большим количеством пинов" },
   "oled 0.96": { name: "OLED 0.96\" I2C (SSD1306)", price: "9 BYN", status: "✅ В наличии", photo: "https://via.placeholder.com/400x300/00cec9/ffffff?text=OLED+0.96", keywords: ["oled","0.96","ssd1306","дисплей"], category: "Дисплеи", description: "Маленький OLED дисплей 0.96 дюйма" },
+  "oled 1.3": { name: "OLED 1.3\" I2C (SH1106)", price: "12 BYN", status: "🚚 Под заказ (14–30 дней)", photo: "https://via.placeholder.com/400x300/00b894/ffffff?text=OLED+1.3", keywords: ["oled","1.3","sh1106","дисплей"], category: "Дисплеи", description: "OLED дисплей 1.3 дюйма" },
+  "lcd 1602": { name: "LCD 1602", price: "9 BYN", status: "🚚 Под заказ (14–30 дней)", photo: "https://via.placeholder.com/400x300/0984e3/ffffff?text=LCD+1602", keywords: ["lcd","1602","дисплей"], category: "Дисплеи", description: "Символьный LCD дисплей 16x2" },
+  "lcd 2004": { name: "LCD 2004", price: "11 BYN", status: "🚚 Под заказ (14–30 дней)", photo: "https://via.placeholder.com/400x300/6c5ce7/ffffff?text=LCD+2004", keywords: ["lcd","2004","дисплей"], category: "Дисплеи", description: "Символьный LCD дисплей 20x4" },
   "hc-sr04": { name: "HC-SR04 ультразвуковой датчик", price: "10 BYN", status: "🚚 Под заказ (14–30 дней)", photo: "https://via.placeholder.com/400x300/00b894/ffffff?text=HC-SR04", keywords: ["hc-sr04","ультразвук","датчик"], category: "Датчики", description: "Ультразвуковой датчик расстояния" },
+  "dht22": { name: "DHT22 температура/влажность", price: "14 BYN", status: "🚚 Под заказ (14–30 дней)", photo: "https://via.placeholder.com/400x300/0984e3/ffffff?text=DHT22", keywords: ["dht22","температура","влажность"], category: "Датчики", description: "Цифровой датчик температуры и влажности" },
+  "dht11": { name: "DHT11 температура/влажность", price: "8 BYN", status: "🚚 Под заказ (14–30 дней)", photo: "https://via.placeholder.com/400x300/6c5ce7/ffffff?text=DHT11", keywords: ["dht11","температура","влажность"], category: "Датчики", description: "Бюджетный датчик температуры и влажности" },
   "bc547": { name: "BC547 (NPN) 10 шт.", price: "5 BYN", status: "🚚 Под заказ (14–30 дней)", photo: "https://via.placeholder.com/400x300/e17055/ffffff?text=BC547", keywords: ["bc547","транзистор","npn"], category: "Транзисторы", description: "NPN биполярный транзистор, 10 штук" },
+  "bc557": { name: "BC557 (PNP) 10 шт.", price: "5 BYN", status: "🚚 Под заказ (14–30 дней)", photo: "https://via.placeholder.com/400x300/fdcb6e/333333?text=BC557", keywords: ["bc557","транзистор","pnp"], category: "Транзисторы", description: "PNP биполярный транзистор, 10 штук" },
   "ne555": { name: "NE555 таймер", price: "3 BYN", status: "🚚 Под заказ (14–30 дней)", photo: "https://via.placeholder.com/400x300/fdcb6e/333333?text=NE555", keywords: ["ne555","555","таймер"], category: "Микросхемы", description: "Классический таймер NE555" },
   "7805": { name: "7805 +5V стабилизатор", price: "3 BYN", status: "🚚 Под заказ (14–30 дней)", photo: "https://via.placeholder.com/400x300/0984e3/ffffff?text=7805", keywords: ["7805","стабилизатор","5v"], category: "Стабилизаторы", description: "Линейный стабилизатор напряжения +5В" },
   "реле 1": { name: "Реле 5V 1-канальное", price: "4 BYN", status: "🚚 Под заказ (14–30 дней)", photo: "https://via.placeholder.com/400x300/6c5ce7/ffffff?text=Relay+1", keywords: ["реле","relay","1 канал"], category: "Реле и драйверы", description: "Одноканальное реле на 5В" },
+  "реле 2": { name: "Реле 5V 2-канальное", price: "6 BYN", status: "🚚 Под заказ (14–30 дней)", photo: "https://via.placeholder.com/400x300/00b894/ffffff?text=Relay+2", keywords: ["реле","relay","2 канала"], category: "Реле и драйверы", description: "Двухканальное реле на 5В" },
+  "реле 4": { name: "Реле 5V 4-канальное", price: "9 BYN", status: "🚚 Под заказ (14–30 дней)", photo: "https://via.placeholder.com/400x300/00cec9/ffffff?text=Relay+4", keywords: ["реле","relay","4 канала"], category: "Реле и драйверы", description: "Четырёхканальное реле на 5В" },
   "sg90": { name: "SG90 микро-серво", price: "6 BYN", status: "🚚 Под заказ (14–30 дней)", photo: "https://via.placeholder.com/400x300/e84393/ffffff?text=SG90", keywords: ["sg90","серво","servo"], category: "Моторы и серво", description: "Микро-сервопривод SG90 9г" },
-  "12v 2a": { name: "12V 2A адаптер", price: "10 BYN", status: "🚚 Под заказ (14–30 дней)", photo: "https://via.placeholder.com/400x300/00cec9/ffffff?text=12V+2A", keywords: ["блок питания","12v","2a","адаптер"], category: "Блоки питания", description: "Блок питания 12В 2А" }
+  "mg90s": { name: "MG90S металлический серво", price: "8 BYN", status: "🚚 Под заказ (14–30 дней)", photo: "https://via.placeholder.com/400x300/fdcb6e/333333?text=MG90S", keywords: ["mg90s","серво","servo"], category: "Моторы и серво", description: "Сервопривод MG90S с металлическими шестернями" },
+  "12v 2a": { name: "12V 2A адаптер", price: "10 BYN", status: "🚚 Под заказ (14–30 дней)", photo: "https://via.placeholder.com/400x300/00cec9/ffffff?text=12V+2A", keywords: ["блок питания","12v","2a","адаптер"], category: "Блоки питания", description: "Блок питания 12В 2А" },
+  "12v 5a": { name: "12V 5A импульсный", price: "22 BYN", status: "🚚 Под заказ (14–30 дней)", photo: "https://via.placeholder.com/400x300/0984e3/ffffff?text=12V+5A", keywords: ["блок питания","12v","5a","импульсный"], category: "Блоки питания", description: "Импульсный блок питания 12В 5А" },
+  "dupont мм": { name: "Dupont мама-мама 40 шт.", price: "4 BYN", status: "🚚 Под заказ (14–30 дней)", photo: "https://via.placeholder.com/400x300/6c5ce7/ffffff?text=Dupont+MM", keywords: ["dupont","мама-мама","провода"], category: "Разъёмы и провода", description: "Набор проводов Dupont мама-мама 40 шт." },
+  "dupont пп": { name: "Dupont папа-папа 40 шт.", price: "4 BYN", status: "🚚 Под заказ (14–30 дней)", photo: "https://via.placeholder.com/400x300/6c5ce7/ffffff?text=Dupont+PP", keywords: ["dupont","папа-папа","провода"], category: "Разъёмы и провода", description: "Набор проводов Dupont папа-папа 40 шт." },
+  "dupont пм": { name: "Dupont папа-мама 40 шт.", price: "4 BYN", status: "🚚 Под заказ (14–30 дней)", photo: "https://via.placeholder.com/400x300/6c5ce7/ffffff?text=Dupont+PM", keywords: ["dupont","папа-мама","провода"], category: "Разъёмы и провода", description: "Набор проводов Dupont папа-мама 40 шт." }
 };
 
 // ==================== ПОИСК ====================
@@ -104,12 +133,19 @@ function buildIndex() {
     if (!products.hasOwnProperty(key)) continue;
     var p = products[key];
     var texts = [key.toLowerCase(), p.name.toLowerCase(), p.category.toLowerCase(), p.description.toLowerCase()];
-    if (p.keywords) { for (var i = 0; i < p.keywords.length; i++) texts.push(p.keywords[i].toLowerCase()); }
+    if (p.keywords) {
+      for (var i = 0; i < p.keywords.length; i++) {
+        texts.push(p.keywords[i].toLowerCase());
+      }
+    }
     var words = {};
     for (var t = 0; t < texts.length; t++) {
       var clean = texts[t].replace(/[^\w\s]/g, " ").replace(/\s+/g, " ");
       var parts = clean.split(" ");
-      for (var p2 = 0; p2 < parts.length; p2++) { var w = parts[p2]; if (w.length > 1) words[w] = true; }
+      for (var p2 = 0; p2 < parts.length; p2++) {
+        var w = parts[p2];
+        if (w.length > 1) words[w] = true;
+      }
     }
     for (var w2 in words) {
       if (!words.hasOwnProperty(w2)) continue;
@@ -122,43 +158,87 @@ function buildIndex() {
 var invertedIndex = buildIndex();
 
 function search(query) {
-  var cleanQuery = query.toLowerCase().replace(/[^\w\s]/g, " ").replace(/\s+/g, " ").trim();
+  var cleanQuery = query.toLowerCase().trim();
   if (!cleanQuery) return [];
-  var words = cleanQuery.split(" ");
-  var results = {}, scores = {};
-  for (var i = 0; i < words.length; i++) {
-    var word = words[i];
-    if (!invertedIndex[word]) continue;
-     var keys = invertedIndex[word];
-    for (var j = 0; j < keys.length; j++) {
-      var key = keys[j];
-      var p = products[key];
-      var score = 0;
-      if (key.indexOf(word) !== -1) score += 5;
-      if (p.name.toLowerCase().indexOf(word) !== -1) score += 4;
-      if (p.category.toLowerCase().indexOf(word) !== -1) score += 3;
-      if (p.keywords) {
-        for (var k = 0; k < p.keywords.length; k++) {
-          if (p.keywords[k].toLowerCase().indexOf(word) !== -1) { score += 2; break; }
+  var words = cleanQuery.split(/\s+/);
+  var results = {};
+  var scores = {};
+
+  // 1. Поиск по индексу
+  for (var wi = 0; wi < words.length; wi++) {
+    var word = words[wi];
+    if (word.length < 1) continue;
+    if (invertedIndex[word]) {
+      var keys = invertedIndex[word];
+      for (var j = 0; j < keys.length; j++) {
+        var key = keys[j];
+        var p = products[key];
+        var score = 0;
+        if (key.indexOf(word) !== -1) score += 5;
+        if (p.name.toLowerCase().indexOf(word) !== -1) score += 4;
+        if (p.category.toLowerCase().indexOf(word) !== -1) score += 3;
+        if (p.keywords) {
+          for (var k = 0; k < p.keywords.length; k++) {
+            if (p.keywords[k].toLowerCase().indexOf(word) !== -1) { score += 2; break; }
+          }
         }
-      }
-      if (score > 0) {
-        if (!scores[key]) scores[key] = 0;
-        scores[key] += score;
-        results[key] = p;
+        if (score > 0) {
+          if (!scores[key]) scores[key] = 0;
+          scores[key] += score;
+          results[key] = p;
+        }
       }
     }
   }
-  // ★★★ ГЛАВНОЕ ИСПРАВЛЕНИЕ ★★★
+
+  // 2. Если ничего не найдено – поиск по подстроке
+  if (Object.keys(results).length === 0) {
+    for (var key in products) {
+      if (!products.hasOwnProperty(key)) continue;
+      var p = products[key];
+      var match = false;
+      var score = 0;
+      for (var wi2 = 0; wi2 < words.length; wi2++) {
+        var w = words[wi2];
+        if (w.length < 1) continue;
+        if (key.toLowerCase().indexOf(w) !== -1) { match = true; score += 5; break; }
+        if (p.name.toLowerCase().indexOf(w) !== -1) { match = true; score += 4; break; }
+        if (p.category.toLowerCase().indexOf(w) !== -1) { match = true; score += 3; break; }
+        if (p.keywords) {
+          for (var k2 = 0; k2 < p.keywords.length; k2++) {
+            if (p.keywords[k2].toLowerCase().indexOf(w) !== -1) { match = true; score += 2; break; }
+          }
+          if (match) break;
+        }
+        if (p.description && p.description.toLowerCase().indexOf(w) !== -1) { match = true; score += 1; break; }
+      }
+      if (match) {
+        results[key] = p;
+        scores[key] = score;
+      }
+    }
+  }
+
+  // 3. Если всё равно ничего – показываем все товары
+  if (Object.keys(results).length === 0) {
+    for (var key in products) {
+      if (!products.hasOwnProperty(key)) continue;
+      results[key] = products[key];
+      scores[key] = 0;
+    }
+  }
+
   var sorted = Object.keys(results).sort(function(a, b) {
-    return (scores[b] || 0) - (scores[a] || 0);
+    return (scores[b]  0) - (scores[a]  0);
   });
+
   return sorted.map(function(key) {
     return { key: key, product: results[key], score: scores[key] || 0 };
   });
 }
 
 function getStars(rating) { return "⭐".repeat(rating) + "☆".repeat(5 - rating); }
+
 function formatCart(cartItems) {
   if (!cartItems || cartItems.length === 0) return "🛒 Корзина пуста";
   var text = "🛒 ВАША КОРЗИНА:\n\n";
@@ -184,8 +264,11 @@ var app = express();
 app.use(cors());
 app.use(express.json());
 
+// ==================== ВЕБ-ЭНДПОИНТЫ ====================
+app.get("/ping", function(req, res) { res.send("OK"); });
 app.get("/", function(req, res) {
-  var html = "<!DOCTYPE html><html><head><title>RadioPartsBY Bot</title><style>body{font-family:Arial;text-align:center;padding:50px;background:#f5f5f5;}.container{max-width:600px;margin:0 auto;background:#fff;padding:30px;border-radius:10px;box-shadow:0 2px 10px rgba(0,0,0,0.1);}h1{color:#333;}.status{color:#00b894;font-weight:bold;}.info{color:#666;margin:20px 0;}</style></head><body><div class=container><h1>📦 RadioPartsBY</h1><p class=status>✅ Бот работает!</p><p class=info>Telegram бот для магазина радиодеталей</p><p style=margin-top:20px;color:#999;font-size:14px;>Товаров в каталоге: " + Object.keys(products).length + "</p></div></body></html>";
+  var html = "<!DOCTYPE html><html><head><title>RadioPartsBY Bot</title><style>body{font-family:Arial;text-align:center;padding:50px;background:#f5f5f5;}.container{max-width:600px;margin:0 auto;background:#fff;padding:30px;border-radius:10px;box-shadow:0 2px 10px rgba(0,0,0,0.1);}h1{color:#333;}.status{color:#00b894;font-weight:bold;}.info{color:#666;margin:20px 0;}</style></head><body><div class=container><h1>📦 RadioPartsBY</h1><p class=status>✅ Бот
+    работает!</p><p class=info>Telegram бот для магазина радиодеталей</p><p style=margin-top:20px;color:#999;font-size:14px;>Товаров в каталоге: " + Object.keys(products).length + "</p></div></body></html>";
   res.send(html);
 });
 
@@ -248,7 +331,7 @@ bot.hears("📦 Статус", function(ctx) {
   var last = userOrders.slice(-5).reverse();
   for (var i = 0; i < last.length; i++) {
     var o = last[i];
-    text += "#" + o.id + " — " + (o.status || "Новый") + "\n📅 " + new Date(o.date).toLocaleDateString() + "\n💵 " + (o.total || 0) + " BYN\n\n";
+    text += "#" + o.id + " — " + (o.status  "Новый") + "\n📅 " + new Date(o.date).toLocaleDateString() + "\n💵 " + (o.total  0) + " BYN\n\n";
   }
   ctx.reply(text);
 });
@@ -268,18 +351,28 @@ bot.action(/rating_([1-5])/, function(ctx) {
   ctx.reply("Вы выбрали " + getStars(rating) + "\n\nТеперь напишите текст отзыва:");
 });
 
+// ========== ГЛАВНЫЙ ОБРАБОТЧИК ТЕКСТА (ОДИН!) ==========
 bot.on("text", function(ctx) {
   var text = ctx.message.text.trim();
+  // 1. Обработка отзыва
   if (ctx.session && ctx.session.rating && !text.startsWith("/") && !["🛒 Каталог", "📦 Корзина", "📦 Статус", "🔍 Поиск", "📞 Помощь", "⭐ Оставить отзыв"].includes(text)) {
     var rating = ctx.session.rating;
-    var review = addReview({ text: text, rating: rating, author: ctx.from.username || ctx.from.first_name || "Аноним" });
+    var review = addReview({ text: text, rating: rating, author: ctx.from.username  ctx.from.first_name  "Аноним" });
     ctx.session.rating = null;
     ctx.reply("✅ Спасибо за отзыв!\n\n⭐ " + getStars(rating) + "\n📝 " + text);
     return;
   }
+
+  // 2. Поиск товаров (если текст не команда и не кнопка меню)
   if (!text.startsWith("/") && !["🛒 Каталог", "📦 Корзина", "📦 Статус", "🔍 Поиск", "📞 Помощь", "⭐ Оставить отзыв"].includes(text)) {
     var results = search(text);
-    if (results.length === 0) return ctx.reply("🤷 Ничего не найдено. Попробуйте другие ключевые слова");
+
+    // Если ничего не найдено (хотя fallback даст все товары, но оставим)
+    if (results.length === 0) {
+      return ctx.reply("🤷 Ничего не найдено. Попробуйте другие ключевые слова");
+    }
+
+    // Если один товар – показываем фото и кнопку
     if (results.length === 1) {
       var r = results[0];
       var statuses = getStatuses();
@@ -290,17 +383,23 @@ bot.on("text", function(ctx) {
       });
       return;
     }
+
+    // Несколько товаров – список с кнопками
     var response = "🔍 Найдено " + results.length + " товаров:\n\n";
+    var buttons = [];
     for (var i = 0; i < Math.min(results.length, 10); i++) {
       var item = results[i];
       var st = getStatuses()[item.key] || item.product.status;
       var icon = st.indexOf("✅") !== -1 ? "✅" : "🚚";
       response += icon + " " + item.product.name + " — " + item.product.price + "\n";
+      buttons.push([Markup.button.callback("🛒 " + item.product.name, "add_to_cart_" + item.key)]);
     }
     if (results.length > 10) response += "\n... и еще " + (results.length - 10);
-    ctx.reply(response);
+    ctx.reply(response, Markup.inlineKeyboard(buttons));
   }
 });
+
+// ========== ОБРАБОТЧИКИ КНОПОК ==========
 bot.action(/add_to_cart_(.+)/, function(ctx) {
   var key = ctx.match[1];
   if (!products[key]) return ctx.answerCbQuery("❌ Товар не найден");
@@ -334,48 +433,34 @@ bot.action("cancel_order", function(ctx) {
   ctx.reply("❌ Оформление заказа отменено");
 });
 
-// Обработчик ввода адреса и телефона
+// ========== ОБРАБОТЧИК ВВОДА АДРЕСА/ТЕЛЕФОНА ==========
 bot.on("text", function(ctx) {
+  var order = ctx.session.currentOrder;
+  if (!order) return;
+  if (["🛒 Каталог", "📦 Корзина", "📦 Статус", "🔍 Поиск", "📞 Помощь", "⭐ Оставить отзыв"].includes(ctx.message.text)) return;
   var text = ctx.message.text.trim();
-  // Обработка отзыва
-  if (ctx.session && ctx.session.rating && !text.startsWith("/") && !["🛒 Каталог", "📦 Корзина", "📦 Статус", "🔍 Поиск", "📞 Помощь", "⭐ Оставить отзыв"].includes(text)) {
-    var rating = ctx.session.rating;
-    var review = addReview({ text: text, rating: rating, author: ctx.from.username || ctx.from.first_name || "Аноним" });
-    ctx.session.rating = null;
-    ctx.reply("✅ Спасибо за отзыв!\n\n⭐ " + getStars(rating) + "\n📝 " + text);
-    return;
-  }
-  // Поиск
-  if (!text.startsWith("/") && !["🛒 Каталог", "📦 Корзина", "📦 Статус", "🔍 Поиск", "📞 Помощь", "⭐ Оставить отзыв"].includes(text)) {
-    var results = search(text);
-    if (results.length === 0) {
-      return ctx.reply("🤷 Ничего не найдено. Попробуйте другие ключевые слова");
+  if (order.step === "address") {order.address = text;
+    order.step = "phone";
+    ctx.reply("📝 Шаг 2/3: Введите номер телефона:");
+  } else if (order.step === "phone") {
+    order.phone = text;
+    order.step = "confirm";
+    var orderText = "✅ ПОДТВЕРДИТЕ ЗАКАЗ:\n\n";
+    var total = 0;
+    for (var i = 0; i < order.cart.length; i++) {
+      var item = order.cart[i];
+      var p = products[item.key];
+      if (!p) continue;
+      var price = parseFloat(p.price);
+      var subtotal = price * (item.quantity || 1);
+      orderText += "• " + p.name + " x" + (item.quantity || 1) + " = " + subtotal.toFixed(2) + " BYN\n";
+      total += subtotal;
     }
-    // Если найден один товар – показываем фото с кнопкой
-    if (results.length === 1) {
-      var r = results[0];
-      var statuses = getStatuses();
-      var status = statuses[r.key] || r.product.status;
-      ctx.replyWithPhoto(r.product.photo, {
-        caption: "📦 " + r.product.name + "\n💰 " + r.product.price + "\n" + status + "\n\n" + r.product.description,
-        reply_markup: Markup.inlineKeyboard([Markup.button.callback("🛒 В корзину", "add_to_cart_" + r.key)]).reply_markup
-      });
-      return;
-    }
-    // Если несколько – показываем список с кнопками "В корзину" для каждого
-    var response = "🔍 Найдено " + results.length + " товаров:\n\n";
-    var buttons = [];
-    for (var i = 0; i < Math.min(results.length, 10); i++) {
-      var item = results[i];
-      var st = getStatuses()[item.key] || item.product.status;
-      var icon = st.indexOf("✅") !== -1 ? "✅" : "🚚";
-      response += icon + " " + item.product.name + " — " + item.product.price + "\n";
-      // Добавляем кнопку для этого товара
-      buttons.push([Markup.button.callback("🛒 " + item.product.name, "add_to_cart_" + item.key)]);
-    }
-    if (results.length > 10) response += "\n... и еще " + (results.length - 10);
-    // Отправляем список с кнопками
-    ctx.reply(response, Markup.inlineKeyboard(buttons));
+    orderText += "\n💵 Итого: " + total.toFixed(2) + " BYN\n📍 " + order.address + "\n📱 " + order.phone;
+    ctx.reply(orderText, Markup.inlineKeyboard([
+      [Markup.button.callback("✅ Подтвердить", "confirm_order")],
+      [Markup.button.callback("❌ Отмена", "cancel_order")]
+    ]));
   }
 });
 
@@ -406,7 +491,7 @@ bot.action("confirm_order", function(ctx) {
   bot.telegram.sendMessage(ADMIN_ID, "📦 НОВЫЙ ЗАКАЗ #" + newOrder.id + "\n\n👤 " + ctx.from.first_name + "\n📍 " + newOrder.address + "\n📱 " + newOrder.phone + "\n💵 " + newOrder.total.toFixed(2) + " BYN");
 });
 
-// ==================== АДМИН-КОМАНДЫ ====================
+// ========== АДМИН-КОМАНДЫ ==========
 bot.command("status", function(ctx) {
   if (ctx.from.id !== ADMIN_ID) return ctx.reply("⛔ У вас нет прав.");
   var orders = getOrders();
@@ -419,6 +504,7 @@ bot.command("status", function(ctx) {
   }
   ctx.reply("📊 СТАТИСТИКА:\n\n📦 Заказов: " + orders.length + "\n⭐ Отзывов: " + reviews.length + "\n📈 Рейтинг: " + avg + " " + getStars(Math.round(avg)));
 });
+
 bot.command("export", function(ctx) {
   if (ctx.from.id !== ADMIN_ID) return ctx.reply("⛔ У вас нет прав.");
   var orders = getOrders();
@@ -489,12 +575,22 @@ var server = app.listen(PORT, function() {
   console.log("🌐 Админ-панель: " + PUBLIC_URL);
 });
 
+// Авто-пинг каждые 30 секунд
+setInterval(function() {
+  require('http').get("http://localhost:" + PORT + "/ping", function(res) {}).on('error', function(e) {});
+}, 30000);
+
 bot.launch()
-  .then(function() { console.log("✅ Бот запущен!"); console.log("📱 Бот: https://t.me/" + bot.botInfo.username); console.log("📊 Товаров в каталоге: " + Object.keys(products).length); })
-  .catch(function(err) { console.error("❌ Ошибка запуска бота:", err.message); process.exit(1); });
+  .then(function() {
+    console.log("✅ Бот запущен!");
+    console.log("📱 Бот: https://t.me/" + bot.botInfo.username);
+    console.log("📊 Товаров в каталоге: " + Object.keys(products).length);
+  })
+  .catch(function(err) {
+    console.error("❌ Ошибка запуска бота:", err.message);
+  });
 
 process.once("SIGINT", function() { bot.stop("SIGINT"); server.close(); });
 process.once("SIGTERM", function() { bot.stop("SIGTERM"); server.close(); });
 
 console.log("✅ Бот готов к работе!");
-
