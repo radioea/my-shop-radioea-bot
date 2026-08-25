@@ -336,33 +336,46 @@ bot.action("cancel_order", function(ctx) {
 
 // Обработчик ввода адреса и телефона
 bot.on("text", function(ctx) {
-  var order = ctx.session.currentOrder;
-  if (!order) return;
-  if (["🛒 Каталог", "📦 Корзина", "📦 Статус", "🔍 Поиск", "📞 Помощь", "⭐ Оставить отзыв"].includes(ctx.message.text)) return;
   var text = ctx.message.text.trim();
-  if (order.step === "address") {
-    order.address = text;
-    order.step = "phone";
-    ctx.reply("📝 Шаг 2/3: Введите номер телефона:");
-  } else if (order.step === "phone") {
-    order.phone = text;
-    order.step = "confirm";
-    var orderText = "✅ ПОДТВЕРДИТЕ ЗАКАЗ:\n\n";
-    var total = 0;
-    for (var i = 0; i < order.cart.length; i++) {
-      var item = order.cart[i];
-      var p = products[item.key];
-      if (!p) continue;
-      var price = parseFloat(p.price);
-      var subtotal = price * (item.quantity || 1);
-      orderText += "• " + p.name + " x" + (item.quantity || 1) + " = " + subtotal.toFixed(2) + " BYN\n";
-      total += subtotal;
+  // Обработка отзыва
+  if (ctx.session && ctx.session.rating && !text.startsWith("/") && !["🛒 Каталог", "📦 Корзина", "📦 Статус", "🔍 Поиск", "📞 Помощь", "⭐ Оставить отзыв"].includes(text)) {
+    var rating = ctx.session.rating;
+    var review = addReview({ text: text, rating: rating, author: ctx.from.username  ctx.from.first_name  "Аноним" });
+    ctx.session.rating = null;
+    ctx.reply("✅ Спасибо за отзыв!\n\n⭐ " + getStars(rating) + "\n📝 " + text);
+    return;
+  }
+  // Поиск
+  if (!text.startsWith("/") && !["🛒 Каталог", "📦 Корзина", "📦 Статус", "🔍 Поиск", "📞 Помощь", "⭐ Оставить отзыв"].includes(text)) {
+    var results = search(text);
+    if (results.length === 0) {
+      return ctx.reply("🤷 Ничего не найдено. Попробуйте другие ключевые слова");
     }
-    orderText += "\n💵 Итого: " + total.toFixed(2) + " BYN\n📍 " + order.address + "\n📱 " + order.phone;
-    ctx.reply(orderText, Markup.inlineKeyboard([
-      [Markup.button.callback("✅ Подтвердить", "confirm_order")],
-      [Markup.button.callback("❌ Отмена", "cancel_order")]
-    ]));
+    // Если найден один товар – показываем фото с кнопкой
+    if (results.length === 1) {
+      var r = results[0];
+      var statuses = getStatuses();
+      var status = statuses[r.key] || r.product.status;
+      ctx.replyWithPhoto(r.product.photo, {
+        caption: "📦 " + r.product.name + "\n💰 " + r.product.price + "\n" + status + "\n\n" + r.product.description,
+        reply_markup: Markup.inlineKeyboard([Markup.button.callback("🛒 В корзину", "add_to_cart_" + r.key)]).reply_markup
+      });
+      return;
+    }
+    // Если несколько – показываем список с кнопками "В корзину" для каждого
+    var response = "🔍 Найдено " + results.length + " товаров:\n\n";
+    var buttons = [];
+    for (var i = 0; i < Math.min(results.length, 10); i++) {
+      var item = results[i];
+      var st = getStatuses()[item.key] || item.product.status;
+      var icon = st.indexOf("✅") !== -1 ? "✅" : "🚚";
+      response += icon + " " + item.product.name + " — " + item.product.price + "\n";
+      // Добавляем кнопку для этого товара
+      buttons.push([Markup.button.callback("🛒 " + item.product.name, "add_to_cart_" + item.key)]);
+    }
+    if (results.length > 10) response += "\n... и еще " + (results.length - 10);
+    // Отправляем список с кнопками
+    ctx.reply(response, Markup.inlineKeyboard(buttons));
   }
 });
 
