@@ -1,5 +1,5 @@
-      
-require('dotenv').config();
+
+   require('dotenv').config();
 const { Telegraf, Markup, session } = require('telegraf');
 const express = require('express');
 const fs = require('fs');
@@ -118,7 +118,7 @@ function addReview(review) {
   return newReview;
 }
 
-// ==================== ТОВАРЫ (сокращённо, но все ключевые) ====================
+// ==================== ТОВАРЫ ====================
 var products = {
   "esp32 devkit": {
     name: "ESP32 DevKit V1",
@@ -134,7 +134,7 @@ var products = {
     price: "15 BYN",
     status: "🚚 Под заказ (14–30 дней)",
     photo: "https://via.placeholder.com/400x300/764ba2/ffffff?text=ESP8266",
-    keywords: ["esp8266", "nodemcu", "wifi"],
+        keywords: ["esp8266", "nodemcu", "wifi"],
     category: "Микроконтроллеры",
     description: "Популярный Wi-Fi модуль для IoT проектов"
   },
@@ -245,7 +245,7 @@ function buildIndex() {
       if (product.keywords) {
         for (var i = 0; i < product.keywords.length; i++) {
           texts.push(product.keywords[i].toLowerCase());
-}
+              }
       }
       var words = {};
       for (var t = 0; t < texts.length; t++) {
@@ -310,7 +310,7 @@ function search(query) {
   }
 
   var sorted = Object.keys(results).sort(function(a, b) {
-    return (scores[b]  0) - (scores[a]  0);   // <-- ИСПРАВЛЕНО
+    return (scores[b]  0) - (scores[a]  0);   // <-- ГАРАНТИРОВАННО ИСПРАВЛЕНО
   });
 
   return sorted.map(function(key) {
@@ -362,8 +362,7 @@ app.get("/", function(req, res) {
   html = html + "h1 { color: #333; } .status { color: #00b894; font-weight: bold; }";
   html = html + ".info { color: #666; margin: 20px 0; }</style></head><body>";
   html = html + '<div class="container"><h1>📦 RadioPartsBY</h1>';
-  html = html + '<p class="status">✅ Бот работает!</p>';
-
+      html = html + '<p class="status">✅ Бот работает!</p>';
   html = html + '<p class="info">Telegram бот для магазина радиодеталей</p>';
   html = html + '<p style="margin-top:20px;color:#999;font-size:14px;">Товаров в каталоге: ' + Object.keys(products).length + '</p>';
   html = html + '</div></body></html>';
@@ -607,15 +606,14 @@ bot.action("cancel_order", function(ctx) {
   ctx.reply("❌ Оформление заказа отменено");
 });
 
-// Второй обработчик текста для оформления заказа (должен быть до остальных)
+// Второй обработчик текста для оформления заказа
 bot.on("text", function(ctx) {
   var order = ctx.session.currentOrder;
   if (!order) return;
   if (["🛒 Каталог", "📦 Корзина", "📦 Статус", "🔍 Поиск", "📞 Помощь", "⭐ Оставить отзыв"].includes(ctx.message.text)) return;
 
   var text = ctx.message.text.trim();
-
-  if (order.step === "address") {
+if (order.step === "address") {
     order.address = text;
     order.step = "phone";
     ctx.reply("📝 Шаг 2/3: Введите номер телефона:");
@@ -738,7 +736,6 @@ bot.command("set_status", function(ctx) {
   saveStatuses(statuses);
   ctx.reply("✅ Статус товара \"" + products[key].name + "\" изменён на:\n" + newStatus);
 });
-
 bot.command("reset_status", function(ctx) {
   if (ctx.from.id !== ADMIN_ID) return ctx.reply("⛔ У вас нет прав.");
   var args = ctx.message.text.split(" ");
@@ -818,4 +815,4 @@ process.once("SIGTERM", function() {
 console.log("✅ Бот готов к работе!");
 
 
-        
+      
