@@ -425,7 +425,7 @@ bot.hears("📦 Статус", function(ctx) {
   for (var i = 0; i < last.length; i++) {
     var o = last[i];
     text += "#" + o.id + " — " + (o.status || "Новый") + "\n📅 " + new Date(o.date).toLocaleDateString() + "\n💵 " + (o.total || 0) + " BYN\n\n";
-  }
+  };
   ctx.reply(text);
 });
 bot.hears("📞 Помощь", function(ctx) { ctx.reply("📞 ПОМОЩЬ:\n\n🔍 Как найти: напишите название в чат\n📦 Как заказать: добавьте в корзину и оформите\n⏰ Время работы: Пн-Пт 9:00–18:00"); });
