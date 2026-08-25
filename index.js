@@ -12,7 +12,7 @@ const cors = require('cors');
 const BOT_TOKEN = process.env.BOT_TOKEN;
 const ADMIN_ID = parseInt(process.env.ADMIN_ID) || 5179932939;
 const PORT = process.env.PORT || 3000;
-const PUBLIC_URL = process.env.PUBLIC_URL || `http://localhost:${PORT}`;
+const PUBLIC_URL = process.env.PUBLIC_URL || "http://localhost:" + PORT;
 
 // Проверка токена
 if (!BOT_TOKEN) {
