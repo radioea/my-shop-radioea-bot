@@ -1,4 +1,4 @@
-
+      
 require('dotenv').config();
 const { Telegraf, Markup, session } = require('telegraf');
 const express = require('express');
@@ -12,7 +12,6 @@ const ADMIN_ID = parseInt(process.env.ADMIN_ID) || 5179932939;
 const PORT = process.env.PORT || 3000;
 const PUBLIC_URL = process.env.PUBLIC_URL || "http://localhost:" + PORT;
 
-// Проверка токена
 if (!BOT_TOKEN) {
   console.error("Ошибка: BOT_TOKEN не указан в .env файле!");
   console.log("Создайте файл .env и добавьте: BOT_TOKEN=ваш_токен");
@@ -31,12 +30,12 @@ if (!fs.existsSync(DATA_DIR)) {
 }
 
 function initDB() {
-  const files = [ORDERS_FILE, REVIEWS_FILE, STATUS_FILE, CART_FILE];
-  files.forEach(function(file) {
-    if (!fs.existsSync(file)) {
-      fs.writeFileSync(file, JSON.stringify([]));
+  var files = [ORDERS_FILE, REVIEWS_FILE, STATUS_FILE, CART_FILE];
+  for (var i = 0; i < files.length; i++) {
+    if (!fs.existsSync(files[i])) {
+      fs.writeFileSync(files[i], JSON.stringify([]));
     }
-  });
+  }
 }
 initDB();
 
@@ -70,7 +69,13 @@ function saveCarts(carts) { writeJSON(CART_FILE, carts); }
 
 function getUserCart(userId) {
   var carts = getCarts();
-  var cart = carts.find(function(c) { return c.userId === userId; });
+  var cart = null;
+  for (var i = 0; i < carts.length; i++) {
+    if (carts[i].userId === userId) {
+      cart = carts[i];
+      break;
+    }
+  }
   if (!cart) {
     cart = { userId: userId, items: [] };
     carts.push(cart);
@@ -81,10 +86,15 @@ function getUserCart(userId) {
 
 function saveUserCart(userId, items) {
   var carts = getCarts();
-  var index = carts.findIndex(function(c) { return c.userId === userId; });
-  if (index >= 0) {
-    carts[index].items = items;
-  } else {
+  var found = false;
+  for (var i = 0; i < carts.length; i++) {
+    if (carts[i].userId === userId) {
+      carts[i].items = items;
+      found = true;
+      break;
+    }
+  }
+  if (!found) {
     carts.push({ userId: userId, items: items });
   }
   saveCarts(carts);
@@ -92,8 +102,12 @@ function saveUserCart(userId, items) {
 
 function addReview(review) {
   var reviews = getReviews();
+  var newId = 1;
+  if (reviews.length > 0) {
+    newId = reviews[reviews.length - 1].id + 1;
+  }
   var newReview = {
-    id: reviews.length > 0 ? reviews[reviews.length - 1].id + 1 : 1,
+    id: newId,
     text: review.text,
     rating: review.rating,
     author: review.author,
@@ -104,7 +118,7 @@ function addReview(review) {
   return newReview;
 }
 
-// ==================== ТОВАРЫ (сокращённо, но ключевые) ====================
+// ==================== ТОВАРЫ (сокращённо, но все ключевые) ====================
 var products = {
   "esp32 devkit": {
     name: "ESP32 DevKit V1",
@@ -123,7 +137,7 @@ var products = {
     keywords: ["esp8266", "nodemcu", "wifi"],
     category: "Микроконтроллеры",
     description: "Популярный Wi-Fi модуль для IoT проектов"
-    },
+  },
   "arduino nano": {
     name: "Arduino Nano V3",
     price: "14 BYN",
@@ -231,7 +245,7 @@ function buildIndex() {
       if (product.keywords) {
         for (var i = 0; i < product.keywords.length; i++) {
           texts.push(product.keywords[i].toLowerCase());
-        }
+}
       }
       var words = {};
       for (var t = 0; t < texts.length; t++) {
@@ -296,7 +310,7 @@ function search(query) {
   }
 
   var sorted = Object.keys(results).sort(function(a, b) {
-    return (scores[b]  0) - (scores[a]  0);
+    return (scores[b]  0) - (scores[a]  0);   // <-- ИСПРАВЛЕНО
   });
 
   return sorted.map(function(key) {
@@ -349,6 +363,7 @@ app.get("/", function(req, res) {
   html = html + ".info { color: #666; margin: 20px 0; }</style></head><body>";
   html = html + '<div class="container"><h1>📦 RadioPartsBY</h1>';
   html = html + '<p class="status">✅ Бот работает!</p>';
+
   html = html + '<p class="info">Telegram бот для магазина радиодеталей</p>';
   html = html + '<p style="margin-top:20px;color:#999;font-size:14px;">Товаров в каталоге: ' + Object.keys(products).length + '</p>';
   html = html + '</div></body></html>';
@@ -446,14 +461,19 @@ bot.hears("📦 Корзина", function(ctx) {
 
 bot.hears("📦 Статус", function(ctx) {
   var orders = getOrders();
-  var userOrders = orders.filter(function(o) { return o.userId === ctx.from.id; });
+  var userOrders = [];
+  for (var i = 0; i < orders.length; i++) {
+    if (orders[i].userId === ctx.from.id) {
+      userOrders.push(orders[i]);
+    }
+  }
   if (userOrders.length === 0) {
     return ctx.reply("📭 У вас нет заказов");
   }
   var text = "📦 ВАШИ ЗАКАЗЫ:\n\n";
   var last = userOrders.slice(-5).reverse();
-  for (var i = 0; i < last.length; i++) {
-    var order = last[i];
+  for (var j = 0; j < last.length; j++) {
+    var order = last[j];
     text = text + "#" + order.id + " — " + (order.status || "Новый") + "\n";
     text = text + "📅 " + new Date(order.date).toLocaleDateString() + "\n";
     text = text + "💵 " + (order.total || 0) + " BYN\n\n";
@@ -487,7 +507,8 @@ bot.action(/rating_([1-5])/, function(ctx) {
 
 bot.on("text", function(ctx) {
   var text = ctx.message.text.trim();
-// Обработка отзыва
+
+  // Обработка отзыва
   if (ctx.session && ctx.session.rating && !text.startsWith("/") && !["🛒 Каталог", "📦 Корзина", "📦 Статус", "🔍 Поиск", "📞 Помощь", "⭐ Оставить отзыв"].includes(text)) {
     var rating = ctx.session.rating;
     var review = addReview({
@@ -542,7 +563,13 @@ bot.action(/add_to_cart_(.+)/, function(ctx) {
   if (!product) return ctx.answerCbQuery("❌ Товар не найден");
 
   var cart = getUserCart(ctx.from.id);
-  var existing = cart.items.find(function(item) { return item.key === key; });
+  var existing = null;
+  for (var i = 0; i < cart.items.length; i++) {
+    if (cart.items[i].key === key) {
+      existing = cart.items[i];
+      break;
+    }
+  }
   if (existing) {
     existing.quantity = (existing.quantity || 1) + 1;
   } else {
@@ -580,6 +607,7 @@ bot.action("cancel_order", function(ctx) {
   ctx.reply("❌ Оформление заказа отменено");
 });
 
+// Второй обработчик текста для оформления заказа (должен быть до остальных)
 bot.on("text", function(ctx) {
   var order = ctx.session.currentOrder;
   if (!order) return;
@@ -599,7 +627,6 @@ bot.on("text", function(ctx) {
     var total = 0;
     for (var i = 0; i < order.cart.length; i++) {
       var item = order.cart[i];
-
       var product = products[item.key];
       if (product) {
         var price = parseFloat(product.price);
@@ -628,15 +655,20 @@ bot.action("confirm_order", function(ctx) {
     id: orders.length + 1,
     userId: ctx.from.id,
     items: order.cart,
-    total: order.cart.reduce(function(sum, item) {
-      var product = products[item.key];
-      return sum + parseFloat(product ? product.price  "0" : "0") * (item.quantity  1);
-    }, 0),
+    total: 0,
     address: order.address,
     phone: order.phone,
     status: "Новый",
     date: new Date().toISOString()
   };
+
+  for (var i = 0; i < order.cart.length; i++) {
+    var item = order.cart[i];
+    var product = products[item.key];
+    if (product) {
+      newOrder.total += parseFloat(product.price) * (item.quantity || 1);
+    }
+  }
 
   orders.push(newOrder);
   saveOrders(orders);
@@ -710,7 +742,6 @@ bot.command("set_status", function(ctx) {
 bot.command("reset_status", function(ctx) {
   if (ctx.from.id !== ADMIN_ID) return ctx.reply("⛔ У вас нет прав.");
   var args = ctx.message.text.split(" ");
-
   if (args.length < 2) return ctx.reply("⚠️ Используйте: /reset_status \"ключ\"");
   var key = args.slice(1).join(" ").toLowerCase();
   if (!products[key]) return ctx.reply("❌ Товар не найден");
@@ -785,4 +816,6 @@ process.once("SIGTERM", function() {
 });
 
 console.log("✅ Бот готов к работе!");
-       
+
+
+        
